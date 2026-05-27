@@ -105,8 +105,8 @@ const cambiarPagina = (pagina) => {
 
                 <el-form-item label="Estado" class="mb-0">
                     <el-select v-model="filtros.estado" placeholder="Todos" clearable style="width: 160px;">
-                        <el-option label="Activo" value="activo" />
-                        <el-option label="Inactivo" value="inactivo" />
+                        <el-option label="Activo" value="habilitado" />
+                        <el-option label="Inactivo" value="deshabilitado" />
                     </el-select>
                 </el-form-item>
 

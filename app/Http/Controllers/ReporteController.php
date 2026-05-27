@@ -163,18 +163,17 @@ class ReporteController extends Controller
                         'products_services.id as producto_id',
                         'products_services.nombre as producto',
                         'products_services.operador',
-                        'sale_items.precio_compra',
+                        DB::raw('MAX(products_services.precio_compra) as precio_compra'),
                         DB::raw('SUM(sale_items.cantidad) as cantidad_total'),
                         DB::raw('SUM(sale_items.subtotal) as ingresos_totales'),
-                        DB::raw('SUM((sale_items.precio_venta - sale_items.precio_compra) * sale_items.cantidad) as ganancia_neta')
+                        DB::raw('SUM((sale_items.precio_venta - COALESCE(NULLIF(sale_items.precio_compra, 0), products_services.precio_compra, 0)) * sale_items.cantidad) as ganancia_neta')
                     )
                     ->when($vendedor_id, fn($q) => $q->where('sales.user_id', $vendedor_id))
                     ->when($request->producto_id, fn($q) => $q->where('sale_items.product_service_id', $request->producto_id))
                     ->when($request->operador, fn($q) => $q->where('products_services.operador', $request->operador))
                     ->when($fecha_inicio && $fecha_fin, fn($q) => $q->whereBetween('sales.fecha_hora', [$fecha_inicio, $fecha_fin]))
-                    ->groupBy('products_services.id', 'products_services.nombre', 'products_services.operador', 'sale_items.precio_compra')
-                    ->orderBy('products_services.nombre')
-                    ->orderBy('sale_items.precio_compra');
+                    ->groupBy('products_services.id', 'products_services.nombre', 'products_services.operador')
+                    ->orderBy('products_services.nombre');
 
             case 'auditoria':
                 return \App\Models\Log::with('user')
