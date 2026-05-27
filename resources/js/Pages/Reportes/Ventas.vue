@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { Head, usePage, router } from '@inertiajs/vue3';
 import PanelLayout from '@/Layouts/PanelLayout.vue';
-import { Download, Document, Search } from '@element-plus/icons-vue';
+import { Download, Document, Search, Refresh } from '@element-plus/icons-vue';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -46,6 +46,15 @@ const buscar = debounce(() => {
 // Como el user tenía un @click="buscar", lo dejamos sin watch o con watch selectivo.
 // Lo mantendremos en los selects pero datepicker requiere botón, o watch total. Haremos watch total.
 watch(filtros, buscar, { deep: true });
+
+const limpiarFiltros = () => {
+    filtros.value = {
+        vendedor_id: isVendedor ? authUser.id : '',
+        tipo_pago: '',
+        estado: 'completada',
+        fecha_rango: []
+    };
+};
 
 const orientacionPdf = ref('L');
 
@@ -129,13 +138,13 @@ const cambiarPagina = (pagina) => {
             
             <el-form :inline="true" :model="filtros" class="flex flex-wrap gap-4 items-end mb-0">
                 <el-form-item label="Vendedor" v-if="!isVendedor" class="mb-0">
-                    <el-select v-model="filtros.vendedor_id" placeholder="Todos" clearable class="w-48">
+                    <el-select v-model="filtros.vendedor_id" placeholder="Todos" clearable style="width: 192px;">
                         <el-option v-for="v in filtrosGlobales.vendedores" :key="v.id" :label="v.nombre_completo" :value="v.id" />
                     </el-select>
                 </el-form-item>
 
                 <el-form-item label="Tipo Pago" class="mb-0">
-                    <el-select v-model="filtros.tipo_pago" placeholder="Todos" clearable class="w-32">
+                    <el-select v-model="filtros.tipo_pago" placeholder="Todos" clearable style="width: 160px;">
                         <el-option label="Efectivo" value="efectivo" />
                         <el-option label="QR" value="qr" />
                         <el-option label="Transferencia" value="transferencia" />
@@ -143,10 +152,14 @@ const cambiarPagina = (pagina) => {
                 </el-form-item>
 
                 <el-form-item label="Estado" class="mb-0">
-                    <el-select v-model="filtros.estado" placeholder="Todos" clearable class="w-32">
+                    <el-select v-model="filtros.estado" placeholder="Todos" clearable style="width: 160px;">
                         <el-option label="Completada" value="completada" />
                         <el-option label="Anulada" value="anulada" />
                     </el-select>
+                </el-form-item>
+
+                <el-form-item class="mb-0">
+                    <el-button type="info" plain :icon="Refresh" @click="limpiarFiltros">Limpiar</el-button>
                 </el-form-item>
 
                 <el-form-item label="Rango de Fechas" class="mb-0">

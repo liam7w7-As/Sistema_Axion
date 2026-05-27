@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { Head, usePage, router } from '@inertiajs/vue3';
 import PanelLayout from '@/Layouts/PanelLayout.vue';
-import { Download, Document, Search } from '@element-plus/icons-vue';
+import { Download, Document, Search, Refresh } from '@element-plus/icons-vue';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -40,6 +40,14 @@ const buscar = debounce(() => {
 }, 500);
 
 watch(filtros, buscar, { deep: true });
+
+const limpiarFiltros = () => {
+    filtros.value = {
+        vendedor_id: '',
+        operador: '',
+        fecha_rango: []
+    };
+};
 
 const orientacionPdf = ref('L');
 
@@ -150,15 +158,19 @@ const calcularTotales = (param) => {
                 </template>
                 <el-form :inline="true" :model="filtros" class="flex flex-wrap gap-4 items-end mb-0">
                     <el-form-item label="Vendedor" class="mb-0">
-                        <el-select v-model="filtros.vendedor_id" placeholder="Todos" clearable class="w-48">
+                        <el-select v-model="filtros.vendedor_id" placeholder="Todos" clearable style="width: 192px;">
                             <el-option v-for="v in filtrosGlobales.vendedores" :key="v.id" :label="v.nombre_completo" :value="v.id" />
                         </el-select>
                     </el-form-item>
 
                     <el-form-item label="Operador" class="mb-0">
-                        <el-select v-model="filtros.operador" placeholder="Todos" clearable class="w-32">
+                        <el-select v-model="filtros.operador" placeholder="Todos" clearable style="width: 160px;">
                             <el-option v-for="o in filtrosGlobales.operadores" :key="o" :label="o" :value="o" />
                         </el-select>
+                    </el-form-item>
+
+                    <el-form-item class="mb-0">
+                        <el-button type="info" plain :icon="Refresh" @click="limpiarFiltros">Limpiar</el-button>
                     </el-form-item>
 
                     <el-form-item label="Rango de Fechas" class="mb-0">

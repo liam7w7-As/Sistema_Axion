@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { Head, usePage, router } from '@inertiajs/vue3';
 import PanelLayout from '@/Layouts/PanelLayout.vue';
-import { Download, Document, Search } from '@element-plus/icons-vue';
+import { Download, Document, Search, Refresh } from '@element-plus/icons-vue';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -25,6 +25,13 @@ const buscar = debounce(() => {
 }, 500);
 
 watch(filtros, buscar, { deep: true });
+
+const limpiarFiltros = () => {
+    filtros.value = {
+        rol: '',
+        estado: ''
+    };
+};
 
 const orientacionPdf = ref('L');
 
@@ -90,17 +97,21 @@ const cambiarPagina = (pagina) => {
             </template>
             <el-form :inline="true" :model="filtros" class="flex flex-wrap gap-4 items-end mb-0">
                 <el-form-item label="Rol" class="mb-0">
-                    <el-select v-model="filtros.rol" placeholder="Todos" clearable class="w-40">
+                    <el-select v-model="filtros.rol" placeholder="Todos" clearable style="width: 160px;">
                         <el-option label="Administrador" value="administrador" />
                         <el-option label="Vendedor" value="vendedor" />
                     </el-select>
                 </el-form-item>
 
                 <el-form-item label="Estado" class="mb-0">
-                    <el-select v-model="filtros.estado" placeholder="Todos" clearable class="w-32">
+                    <el-select v-model="filtros.estado" placeholder="Todos" clearable style="width: 160px;">
                         <el-option label="Activo" value="activo" />
                         <el-option label="Inactivo" value="inactivo" />
                     </el-select>
+                </el-form-item>
+
+                <el-form-item class="mb-0">
+                    <el-button type="info" plain :icon="Refresh" @click="limpiarFiltros">Limpiar</el-button>
                 </el-form-item>
             </el-form>
         </el-card>

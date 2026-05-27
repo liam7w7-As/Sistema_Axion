@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { Head, usePage, router } from '@inertiajs/vue3';
 import PanelLayout from '@/Layouts/PanelLayout.vue';
-import { Download, Document, Search } from '@element-plus/icons-vue';
+import { Download, Document, Search, Refresh } from '@element-plus/icons-vue';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -28,6 +28,13 @@ const buscar = debounce(() => {
 }, 500);
 
 watch(filtros, buscar, { deep: true });
+
+const limpiarFiltros = () => {
+    filtros.value = {
+        tipo: '',
+        operador: '',
+    };
+};
 
 const orientacionPdf = ref('L');
 
@@ -93,16 +100,20 @@ const cambiarPagina = (pagina) => {
             </template>
             <el-form :inline="true" :model="filtros" class="flex flex-wrap gap-4 items-end mb-0">
                 <el-form-item label="Tipo" class="mb-0">
-                    <el-select v-model="filtros.tipo" placeholder="Todos" clearable class="w-32">
+                    <el-select v-model="filtros.tipo" placeholder="Todos" clearable style="width: 160px;">
                         <el-option label="Producto" value="producto" />
                         <el-option label="Servicio" value="servicio" />
                     </el-select>
                 </el-form-item>
 
                 <el-form-item label="Operador" class="mb-0">
-                    <el-select v-model="filtros.operador" placeholder="Todos" clearable class="w-32">
+                    <el-select v-model="filtros.operador" placeholder="Todos" clearable style="width: 160px;">
                         <el-option v-for="o in filtrosGlobales.operadores" :key="o" :label="o" :value="o" />
                     </el-select>
+                </el-form-item>
+                
+                <el-form-item class="mb-0">
+                    <el-button type="info" plain :icon="Refresh" @click="limpiarFiltros">Limpiar</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
