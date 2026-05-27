@@ -178,6 +178,36 @@ class DashboardMovimientosController extends Controller
             $totales_consolidados[$sec] = $total_movs + $total_ventas_sec;
         }
 
+        // CÁLCULO DE LÍMITES Y SALDOS DE SERVICIOS
+        $limites_json = $apertura->limites_servicios_json ?? [];
+        $saldos_servicios = [];
+        
+        $movs_por_servicio = SellerMovement::where('cash_opening_id', $apertura->id)
+            ->select('seccion', 'operador', DB::raw('SUM(monto) as total_usado'))
+            ->groupBy('seccion', 'operador')
+            ->get();
+
+        foreach ($limites_json as $key => $limite) {
+            if ($limite === null || $limite === '') continue; // Ilimitado
+
+            $usado = 0;
+            if (str_starts_with($key, 'recargas_') || str_starts_with($key, 'megas_')) {
+                $partes = explode('_', $key, 2);
+                $seccion = $partes[0];
+                $operador = $partes[1];
+                $mov = $movs_por_servicio->where('seccion', $seccion)->where('operador', $operador)->first();
+                $usado = $mov ? $mov->total_usado : 0;
+            } else {
+                $usado = $movs_por_servicio->where('seccion', $key)->sum('total_usado');
+            }
+
+            $saldos_servicios[$key] = [
+                'limite' => (float) $limite,
+                'usado' => (float) $usado,
+                'disponible' => max(0, (float) $limite - (float) $usado)
+            ];
+        }
+
         return Inertia::render('Dashboard/Index', [
             'apertura_activa' => true,
             'datos_jornada' => [
@@ -193,6 +223,7 @@ class DashboardMovimientosController extends Controller
                 'servicios_asignados' => $vendedor->servicios_asignados_json ?? [],
             ],
             'movimientos_por_seccion' => $totales_consolidados,
+            'saldos_servicios' => $saldos_servicios,
             'vendedores_activos' => $vendedores_activos,
             'vendedores_activos_datos' => $vendedores_activos_datos,
             'vendedor_seleccionado_id' => $vendedor_id,
@@ -209,6 +240,7 @@ class DashboardMovimientosController extends Controller
         $validated = $request->validate([
             'cash_opening_id' => 'required|exists:cash_openings,id',
             'seccion' => 'required|string|in:tarjetas_unidad,tarjetas_mayor,recuperaciones,chips,recargas,megas,servicios_digitales,banca_digital,servicio_tecnico,efectivo_monedas',
+            'operador' => 'nullable|string',
             'cantidad' => 'nullable|integer',
             'monto' => 'required|numeric',
             'observacion' => 'nullable|string|max:500'
@@ -228,19 +260,50 @@ class DashboardMovimientosController extends Controller
             return redirect()->back()->with('error', 'No se permiten modificaciones después del cierre de caja.');
         }
 
+        if (in_array($validated['seccion'], ['recargas', 'megas']) && empty($validated['operador'])) {
+            return redirect()->back()->withErrors(['operador' => 'Debe seleccionar un operador.']);
+        }
+
+        // Verificar límite
+        $key = in_array($validated['seccion'], ['recargas', 'megas']) 
+            ? $validated['seccion'] . '_' . ($validated['operador'] ?? '') 
+            : $validated['seccion'];
+
+        $limites = $apertura->limites_servicios_json ?? [];
+        $disponible = null;
+        
+        if (array_key_exists($key, $limites) && $limites[$key] !== null && $limites[$key] !== '') {
+            $limiteAsignado = (float) $limites[$key];
+            
+            $usado = SellerMovement::where('cash_opening_id', $apertura->id)
+                ->where('seccion', $validated['seccion'])
+                ->when($validated['operador'] ?? null, fn($q, $op) => $q->where('operador', $op))
+                ->sum('monto');
+                
+            $disponible = max(0, $limiteAsignado - $usado);
+            
+            if ($validated['monto'] > $disponible) {
+                return redirect()->back()->withErrors(['monto' => "Saldo insuficiente para este servicio. Disponible: {$disponible} Bs"]);
+            }
+        }
+
         DB::beginTransaction();
         try {
             // Guardar historial detallado
             SellerMovement::create([
                 'cash_opening_id' => $apertura->id,
                 'seccion' => $validated['seccion'],
+                'operador' => $validated['operador'] ?? null,
                 'cantidad' => $validated['cantidad'],
                 'monto' => $validated['monto'],
                 'observacion' => $validated['observacion'],
             ]);
 
+            $restante = $disponible !== null ? ($disponible - $validated['monto']) : 'Ilimitado';
+            $mensaje = $restante === 'Ilimitado' ? 'Movimiento registrado exitosamente.' : "✅ Movimiento registrado. Disponible: {$restante} Bs";
+
             DB::commit();
-            return redirect()->back()->with('success', 'Movimiento guardado exitosamente.');
+            return redirect()->back()->with('success', $mensaje);
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Error al guardar el movimiento: ' . $e->getMessage());

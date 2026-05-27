@@ -17,6 +17,10 @@ const props = defineProps({
     productos_dashboard: {
         type: Array,
         default: () => []
+    },
+    saldos_servicios: {
+        type: Object,
+        default: () => ({})
     }
 });
 
@@ -28,14 +32,7 @@ const cambiarVendedor = (val) => {
     router.get(route('dashboard'), { vendedor_id: val }, { preserveState: true });
 };
 
-// Formulario para guardar movimientos manuales puros (Efectivo/Monedas)
-const formMovimiento = useForm({
-    cash_opening_id: props.datos_jornada?.apertura_id || null,
-    seccion: '',
-    cantidad: null,
-    monto: null,
-    observacion: ''
-});
+const formsMovimiento = ref({});
 
 // Formularios independientes para ventas rápidas por sección
 const formsVenta = ref({});
@@ -44,20 +41,32 @@ const seccionesInfo = [
     { key: 'tarjetas_mayor', titulo: 'Tarjetas por Mayor', permiteNegativo: false, usaProductos: true },
     { key: 'recuperaciones', titulo: 'Recuperaciones', permiteNegativo: false, usaProductos: true },
     { key: 'chips', titulo: 'Chips', permiteNegativo: false, usaProductos: true },
-    { key: 'recargas', titulo: 'Recargas al Paso', permiteNegativo: false, usaProductos: true },
-    { key: 'megas', titulo: 'Megas', permiteNegativo: false, usaProductos: true },
-    { key: 'servicios_digitales', titulo: 'Servicios Digitales', permiteNegativo: false, usaProductos: true },
-    { key: 'banca_digital', titulo: 'Banca Digital', permiteNegativo: false, usaProductos: true },
-    { key: 'servicio_tecnico', titulo: 'Servicio Técnico', permiteNegativo: false, usaProductos: true },
+    { key: 'recargas', titulo: 'Recargas al Paso', permiteNegativo: false, usaProductos: false, requiereOperador: true },
+    { key: 'megas', titulo: 'Megas', permiteNegativo: false, usaProductos: false, requiereOperador: true },
+    { key: 'servicios_digitales', titulo: 'Servicios Digitales', permiteNegativo: false, usaProductos: false },
+    { key: 'banca_digital', titulo: 'Banca Digital', permiteNegativo: false, usaProductos: false },
+    { key: 'servicio_tecnico', titulo: 'Servicio Técnico', permiteNegativo: false, usaProductos: false },
     { key: 'efectivo_monedas', titulo: 'Efectivo/Monedas', permiteNegativo: true, usaProductos: false, extra: 'Para salidas ingresar monto con signo negativo (-)' }
 ];
 
 seccionesInfo.forEach(sec => {
-    formsVenta.value[sec.key] = {
-        product_service_id: null,
-        cantidad: null,
-        processing: false
-    };
+    if (sec.usaProductos) {
+        formsVenta.value[sec.key] = {
+            product_service_id: null,
+            cantidad: null,
+            processing: false
+        };
+    } else {
+        formsMovimiento.value[sec.key] = {
+            cash_opening_id: props.datos_jornada?.apertura_id || null,
+            seccion: sec.key,
+            operador: '',
+            cantidad: null,
+            monto: null,
+            observacion: '',
+            processing: false
+        };
+    }
 });
 
 // Modal de productos
@@ -90,6 +99,32 @@ const getStockProducto = (seccionKey) => {
     return producto && producto.tipo === 'producto' ? producto.stock_actual : null;
 };
 
+const operadoresDisponibles = computed(() => {
+    const ops = new Set();
+    props.productos_dashboard.forEach(p => {
+        if (p.operador) ops.add(p.operador);
+    });
+    ['Entel', 'Viva', 'Tigo'].forEach(o => ops.add(o));
+    return Array.from(ops);
+});
+
+const getSaldoActivo = (seccionKey) => {
+    if (!props.saldos_servicios) return null;
+    
+    const secInfo = seccionesInfo.find(s => s.key === seccionKey);
+    let key = seccionKey;
+    if (secInfo && secInfo.requiereOperador) {
+        const form = formsMovimiento.value[seccionKey];
+        if (form && form.operador) {
+            key = `${seccionKey}_${form.operador}`;
+        } else {
+            return null;
+        }
+    }
+    
+    return props.saldos_servicios[key] || null;
+};
+
 // Manejo de flash messages nativo de Inertia
 watch(() => page.props.flash, (flash) => {
     if (flash.ticket_url) {
@@ -98,19 +133,27 @@ watch(() => page.props.flash, (flash) => {
 }, { deep: true });
 
 const guardarSeccionManual = (seccionKey) => {
-    if (formMovimiento.monto === null || formMovimiento.monto === '') {
+    const data = formsMovimiento.value[seccionKey];
+    if (data.monto === null || data.monto === '') {
         ElMessage.warning('El monto es obligatorio para registrar un movimiento.');
         return;
     }
     
-    formMovimiento.seccion = seccionKey;
-    formMovimiento.post(route('dashboard.guardar_movimiento'), {
+    data.processing = true;
+    router.post(route('dashboard.guardar_movimiento'), data, {
         preserveScroll: true,
         onSuccess: () => {
-            formMovimiento.reset('cantidad', 'monto', 'observacion');
+            data.cantidad = null;
+            data.monto = null;
+            data.observacion = '';
+            data.processing = false;
         },
         onError: (err) => {
-            ElMessage.error(err.monto || 'Error al guardar el movimiento.');
+            ElMessage.error(err.monto || err.operador || 'Error al guardar el movimiento.');
+            data.processing = false;
+        },
+        onFinish: () => {
+            data.processing = false;
         }
     });
 };
@@ -328,8 +371,11 @@ const guardarVentaRapida = (seccionKey) => {
                         class="shadow-sm hover:shadow-md transition-shadow"
                         :body-style="{ padding: '15px' }"
                     >
-                        <div class="font-bold text-gray-700 text-sm mb-3 border-b pb-2 text-center h-10 flex items-center justify-center">
+                        <div class="font-bold text-gray-700 text-sm mb-3 border-b pb-2 text-center h-10 flex items-center justify-center relative">
                             {{ seccion.titulo }}
+                            <el-tooltip v-if="!seccion.usaProductos && !seccion.permiteNegativo" content="Los servicios no generan ticket. El registro queda auditado en movimientos y cierre." placement="top" :hide-after="0">
+                                <el-icon class="ml-1 text-blue-400 cursor-pointer text-xs"><InfoFilled /></el-icon>
+                            </el-tooltip>
                         </div>
                         
                         <div class="mb-3 text-center">
@@ -415,35 +461,63 @@ const guardarVentaRapida = (seccionKey) => {
 
                             <!-- MODO MOVIMIENTO MANUAL (Dinero puro) -->
                             <template v-else>
-                                <el-input 
-                                    v-model="formMovimiento.cantidad" 
-                                    type="number" 
-                                    placeholder="Cant. (Opcional)" 
-                                    size="small" 
-                                    :disabled="cierre_aprobado"
-                                    @focus="formMovimiento.seccion = seccion.key"
-                                >
-                                    <template #prefix>#</template>
-                                </el-input>
-                                
-                                <el-input 
-                                    v-model="formMovimiento.monto" 
-                                    type="number" 
-                                    :min="seccion.permiteNegativo ? undefined : 0" 
-                                    :step="0.10"
-                                    placeholder="Monto (Bs)" 
+                                <el-select v-if="seccion.requiereOperador"
+                                    v-model="formsMovimiento[seccion.key].operador"
+                                    placeholder="Operador"
                                     size="small"
+                                    class="w-full mb-2"
                                     :disabled="cierre_aprobado"
-                                    @focus="formMovimiento.seccion = seccion.key"
                                 >
-                                    <template #prefix>Bs</template>
-                                </el-input>
+                                    <el-option v-for="op in operadoresDisponibles" :key="op" :label="op" :value="op" />
+                                </el-select>
+
+                                <!-- Badges de Límite -->
+                                <div v-if="getSaldoActivo(seccion.key)" class="text-[10px] bg-gray-100 p-1.5 rounded mb-2 border border-gray-200">
+                                    <div class="flex justify-between text-gray-500 mb-0.5">
+                                        <span>Límite:</span> <span class="font-bold">{{ getSaldoActivo(seccion.key).limite.toFixed(2) }} Bs</span>
+                                    </div>
+                                    <div class="flex justify-between text-gray-500 mb-0.5">
+                                        <span>Usado:</span> <span class="font-bold">{{ getSaldoActivo(seccion.key).usado.toFixed(2) }} Bs</span>
+                                    </div>
+                                    <div class="flex justify-between mt-1 border-t border-gray-200 pt-1" :class="getSaldoActivo(seccion.key).disponible <= 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'">
+                                        <span>Disponible:</span> <span>{{ getSaldoActivo(seccion.key).disponible.toFixed(2) }} Bs</span>
+                                    </div>
+                                </div>
+                                
+                                <el-alert v-if="getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0"
+                                    title="Límite Agotado" type="error" :closable="false" show-icon class="mb-2 py-1 px-2 text-xs" />
+
+                                <div class="flex gap-2">
+                                    <el-input 
+                                        v-model="formsMovimiento[seccion.key].cantidad" 
+                                        type="number" 
+                                        placeholder="Cant." 
+                                        size="small" 
+                                        class="w-1/3"
+                                        :disabled="cierre_aprobado || (getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0)"
+                                    >
+                                        <template #prefix>#</template>
+                                    </el-input>
+                                    
+                                    <el-input 
+                                        v-model="formsMovimiento[seccion.key].monto" 
+                                        type="number" 
+                                        :min="seccion.permiteNegativo ? undefined : 0" 
+                                        :step="0.10"
+                                        placeholder="Monto" 
+                                        size="small"
+                                        class="flex-1"
+                                        :disabled="cierre_aprobado || (getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0)"
+                                    >
+                                        <template #prefix>Bs</template>
+                                    </el-input>
+                                </div>
 
                                 <el-button 
                                     type="primary" 
                                     size="small" 
-                                    class="w-full mt-1" 
-                                    :disabled="cierre_aprobado || formMovimiento.processing"
+                                    class="w-full mt-2" 
+                                    :disabled="cierre_aprobado || formsMovimiento[seccion.key].processing || (getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0) || (seccion.requiereOperador && !formsMovimiento[seccion.key].operador)"
                                     @click="guardarSeccionManual(seccion.key)"
                                 >
                                     Registrar

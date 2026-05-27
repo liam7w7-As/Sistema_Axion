@@ -20,6 +20,7 @@ class SellerMovement extends Model
     protected $fillable = [
         'cash_opening_id',
         'seccion',
+        'operador',
         'cantidad',
         'monto',
         'observacion',

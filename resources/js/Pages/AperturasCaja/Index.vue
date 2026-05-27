@@ -14,6 +14,7 @@ const props = defineProps({
     vendedores: Array,
     vendedoresConCaja: Array,
     vendedoresSinCaja: Array,
+    operadores: Array,
     filtros: Object
 });
 
@@ -44,6 +45,7 @@ const form = useForm({
     saldo_inicial: null,
     limite_venta: null,
     servicios_asignados_json: [],
+    limites_servicios_json: {},
     observacion: ''
 });
 
@@ -66,6 +68,7 @@ const abrirDialogo = (vendedor_id = null) => {
     }
     // Pre-seleccionar todos por defecto, suele ser lo común
     form.servicios_asignados_json = serviciosDisponibles.map(s => s.value);
+    form.limites_servicios_json = {};
     dialogVisible.value = true;
 };
 
@@ -285,6 +288,36 @@ const formatearMoneda = (valor) => {
                         />
                     </el-select>
                 </el-form-item>
+
+                <!-- LÍMITES ESPECÍFICOS -->
+                <div v-if="form.servicios_asignados_json.includes('recargas') || form.servicios_asignados_json.includes('megas')" class="mb-4 bg-gray-50 p-4 rounded border">
+                    <h4 class="font-bold mb-3 text-sm text-gray-700">Límites Específicos por Operador (Recargas/Megas)</h4>
+                    <div v-for="op in operadores" :key="op" class="grid grid-cols-2 gap-4 mb-3 border-b pb-2 last:border-0 last:pb-0 last:mb-0">
+                        <el-form-item v-if="form.servicios_asignados_json.includes('recargas')" :label="`Recargas ${op}`" class="mb-0">
+                            <el-input v-model="form.limites_servicios_json[`recargas_${op}`]" type="number" min="0" placeholder="Ilimitado si vacío">
+                                <template #prefix>Bs</template>
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item v-if="form.servicios_asignados_json.includes('megas')" :label="`Megas ${op}`" class="mb-0">
+                            <el-input v-model="form.limites_servicios_json[`megas_${op}`]" type="number" min="0" placeholder="Ilimitado si vacío">
+                                <template #prefix>Bs</template>
+                            </el-input>
+                        </el-form-item>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4 bg-gray-50 p-4 rounded border" v-if="form.servicios_asignados_json.includes('banca_digital') || form.servicios_asignados_json.includes('servicios_digitales')">
+                    <el-form-item v-if="form.servicios_asignados_json.includes('banca_digital')" label="Límite Banca Digital" class="mb-0">
+                        <el-input v-model="form.limites_servicios_json['banca_digital']" type="number" min="0" placeholder="Ilimitado si vacío">
+                            <template #prefix>Bs</template>
+                        </el-input>
+                    </el-form-item>
+                    <el-form-item v-if="form.servicios_asignados_json.includes('servicios_digitales')" label="Límite Serv. Digitales" class="mb-0">
+                        <el-input v-model="form.limites_servicios_json['servicios_digitales']" type="number" min="0" placeholder="Ilimitado si vacío">
+                            <template #prefix>Bs</template>
+                        </el-input>
+                    </el-form-item>
+                </div>
 
                 <el-form-item label="Observación" :error="form.errors.observacion">
                     <el-input v-model="form.observacion" type="textarea" rows="2" placeholder="Nota opcional..." />

@@ -28,6 +28,7 @@ class StoreAperturaCajaRequest extends FormRequest
             'saldo_inicial' => ['required', 'numeric', 'min:0'],
             'limite_venta' => ['nullable', 'numeric', 'min:0'],
             'servicios_asignados_json' => ['nullable', 'array'],
+            'limites_servicios_json' => ['nullable', 'array'],
             'observacion' => ['nullable', 'string'],
         ];
     }

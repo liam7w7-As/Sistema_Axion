@@ -113,6 +113,20 @@ const formatearMoneda = (valor) => {
             <el-button type="warning" :icon="Plus" @click="abrirDialogo('ajuste')">Ajuste</el-button>
         </div>
 
+        <el-alert
+            title="Sobre los Accesorios Físicos"
+            type="info"
+            show-icon
+            :closable="false"
+            class="mb-6 shadow-sm border border-blue-200"
+        >
+            <template #default>
+                <p class="text-sm mt-1">
+                    Los accesorios son productos físicos. Se venden a través del módulo <strong>Ventas</strong> y descuentan stock automáticamente. No deben gestionarse mediante movimientos manuales en el Dashboard.
+                </p>
+            </template>
+        </el-alert>
+
         <!-- Pestañas de Tipo de Inventario -->
         <el-card class="mb-4 shadow-sm">
             <el-tabs v-model="tabActivo" @tab-change="aplicarFiltros">

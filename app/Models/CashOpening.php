@@ -24,6 +24,7 @@ class CashOpening extends Model
         'saldo_inicial',
         'limite_venta',
         'servicios_asignados_json',
+        'limites_servicios_json',
         'observacion',
         'status',
     ];
@@ -38,6 +39,7 @@ class CashOpening extends Model
             'saldo_inicial' => 'decimal:2',
             'limite_venta' => 'decimal:2',
             'servicios_asignados_json' => 'array',
+            'limites_servicios_json' => 'array',
         ];
     }
 

@@ -62,11 +62,17 @@ class AperturaCajaController extends Controller
             }])
             ->get();
 
+        $operadores = \App\Models\ProductService::whereNotNull('operador')
+            ->where('operador', '!=', '')
+            ->distinct()
+            ->pluck('operador');
+
         return Inertia::render('AperturasCaja/Index', [
             'aperturas' => $aperturas,
             'vendedores' => $vendedores,
             'vendedoresConCaja' => $vendedoresConCaja,
             'vendedoresSinCaja' => $vendedoresSinCaja,
+            'operadores' => $operadores,
             'filtros' => [
                 'search' => $search,
                 'vendedor_id' => $vendedor_id,

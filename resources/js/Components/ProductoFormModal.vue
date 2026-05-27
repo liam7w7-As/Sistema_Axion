@@ -215,6 +215,7 @@ const guardarProducto = () => {
                             <el-option label="Tarjetas por Mayor" value="tarjetas_mayor" />
                             <el-option label="Chips" value="chips" />
                             <el-option label="Efectivo / Monedas" value="efectivo_monedas" />
+                            <el-option label="Accesorios" value="accesorios" />
                         </template>
                         <template v-else>
                             <el-option label="Recuperaciones" value="recuperaciones" />
