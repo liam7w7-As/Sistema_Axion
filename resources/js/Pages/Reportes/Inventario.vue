@@ -135,7 +135,7 @@ const cambiarPagina = (pagina) => {
             </template>
 
             <el-table :data="datos?.data || []" border stripe style="width: 100%" v-if="datos && datos.data.length > 0">
-                <el-table-column prop="id" label="ID" width="120" />
+                <el-table-column type="index" label="Nº" width="60" align="center" />
                 <el-table-column prop="nombre" label="Nombre de Producto/Servicio" min-width="200" />
                 <el-table-column label="Tipo" width="100" align="center">
                     <template #default="scope">

@@ -205,6 +205,7 @@ const calcularTotales = (param) => {
 
                 <template v-if="datos && datos.data.length > 0">
                     <el-table :data="datos?.data || []" border stripe style="width: 100%" show-summary :summary-method="calcularTotales">
+                        <el-table-column type="index" label="Nº" width="60" align="center" />
                         <el-table-column prop="origen" label="Origen" width="130">
                         <template #default="scope">
                             {{ String(scope.row.origen).toUpperCase() }}

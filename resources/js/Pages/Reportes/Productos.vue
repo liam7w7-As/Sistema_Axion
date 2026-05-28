@@ -164,7 +164,7 @@ const cambiarPagina = (pagina) => {
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column prop="id" label="ID" width="60" />
+                <el-table-column type="index" label="Nº" width="60" align="center" />
                 <el-table-column prop="nombre" label="Nombre" min-width="200" />
                 <el-table-column label="Tipo" width="100" align="center">
                     <template #default="scope">

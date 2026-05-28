@@ -203,6 +203,7 @@ const cambiarPagina = (pagina) => {
 
                 <div class="overflow-x-auto" v-if="datos && Object.keys(datos).length > 0">
                     <el-table :data="Object.values(datos)" border stripe style="width: 100%">
+                        <el-table-column type="index" label="Nº" width="60" align="center" />
                         <el-table-column prop="fecha" label="Fecha" width="120" />
                         <el-table-column prop="vendedor" label="Vendedor" min-width="160" />
                         <el-table-column prop="servicio" label="Servicio" min-width="130">
