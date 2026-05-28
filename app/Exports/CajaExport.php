@@ -37,7 +37,7 @@ class CajaExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
             'ID CIERRE',
             'FECHA DE CIERRE',
             'VENDEDOR',
-            'SALDO INICIAL (Bs)',
+            'FONDO DE CAMBIO (Bs)',
             'TOTAL VENTAS (Bs)',
             'TOTAL MOVIMIENTOS (Bs)',
             'SALDO ESPERADO (Bs)',

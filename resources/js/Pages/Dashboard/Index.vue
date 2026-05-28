@@ -21,6 +21,10 @@ const props = defineProps({
     saldos_servicios: {
         type: Object,
         default: () => ({})
+    },
+    tabla_tarjetas: {
+        type: Array,
+        default: () => []
     }
 });
 
@@ -93,7 +97,18 @@ const getStockProducto = (seccionKey) => {
     const productId = formsVenta[seccionKey].product_service_id;
     if (!productId) return null;
     const producto = props.productos_dashboard.find(p => p.id === productId);
-    return producto && producto.tipo === 'producto' ? producto.stock_actual : null;
+    
+    if (producto && producto.tipo === 'producto') {
+        if (seccionKey === 'tarjetas_unidad' || seccionKey === 'tarjetas_mayor') {
+            const targetTipo = `${producto.operador} (${seccionKey === 'tarjetas_unidad' ? 'Unidad' : 'Mayor'})`;
+            const tarjetaData = props.tabla_tarjetas?.find(t => t.tipo === targetTipo);
+            if (tarjetaData) {
+                return tarjetaData.restante;
+            }
+        }
+        return producto.stock_actual;
+    }
+    return null;
 };
 
 const operadoresDisponibles = computed(() => {
@@ -245,16 +260,16 @@ const guardarVentaRapida = (seccionKey) => {
                     <!-- Desglose rápido -->
                     <div class="text-xs text-gray-600 mt-2 space-y-1">
                         <div class="flex justify-between">
-                            <span>Inicial:</span>
-                            <span class="font-medium text-gray-800">Bs {{ Number(vendedor.saldo_inicial).toFixed(2) }}</span>
+                            <span class="text-base font-semibold text-gray-700 mb-1 block">Fondo de Cambio:</span>
+                            <span class="text-xl font-bold text-gray-900">Bs {{ Number(vendedor.saldo_inicial).toFixed(2) }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span>Ventas:</span>
-                            <span class="font-medium text-green-600">+ Bs {{ Number(vendedor.total_ventas).toFixed(2) }}</span>
+                            <span class="text-base font-semibold text-gray-700 mb-1 block">Ventas:</span>
+                            <span class="text-xl font-bold text-green-600">+ Bs {{ Number(vendedor.total_ventas).toFixed(2) }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span>Movimientos:</span>
-                            <span class="font-medium" :class="vendedor.total_movimientos < 0 ? 'text-red-600' : 'text-blue-600'">
+                            <span class="text-base font-semibold text-gray-700 mb-1 block">Movimientos:</span>
+                            <span class="text-xl font-bold text-gray-900" :class="vendedor.total_movimientos < 0 ? 'text-red-600' : 'text-blue-600'">
                                 {{ vendedor.total_movimientos > 0 ? '+' : '' }} Bs {{ Number(vendedor.total_movimientos).toFixed(2) }}
                             </span>
                         </div>
@@ -262,8 +277,8 @@ const guardarVentaRapida = (seccionKey) => {
 
                     <!-- Saldo Esperado en Mano -->
                     <div class="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center">
-                        <span class="text-xs text-gray-500 font-bold uppercase">En Mano:</span>
-                        <span class="font-black text-blue-700 text-base">Bs {{ Number(vendedor.saldo_esperado).toFixed(2) }}</span>
+                        <span class="text-base font-semibold text-gray-700 mb-1 block">En Mano:</span>
+                        <span class="text-xl font-bold text-blue-700">Bs {{ Number(vendedor.saldo_esperado).toFixed(2) }}</span>
                     </div>
                     
                     <!-- Última venta -->
@@ -295,10 +310,10 @@ const guardarVentaRapida = (seccionKey) => {
         </div>
 
         <!-- Dashboard Activo -->
-        <div v-else class="flex flex-col gap-6 mt-4">
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-50 min-h-screen mt-4">
             
             <!-- Badge Cierre Aprobado -->
-            <div v-if="cierre_aprobado" class="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-sm">
+            <div v-if="cierre_aprobado" class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-red-500 col-span-1 md:col-span-2 lg:col-span-3">
                 <div class="flex items-center">
                     <el-icon class="text-red-500 text-xl mr-2"><Warning /></el-icon>
                     <h3 class="text-red-800 font-bold text-lg">Jornada Cerrada y Aprobada</h3>
@@ -307,51 +322,55 @@ const guardarVentaRapida = (seccionKey) => {
             </div>
 
             <!-- Datos de Jornada (Resumen Financiero) -->
-            <el-card class="shadow-sm border-t-4 border-t-blue-500">
+            <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-500 col-span-1 md:col-span-2 lg:col-span-3">
+                <el-card shadow="never" class="!border-0 !p-0">
                 <template #header>
                     <div class="flex items-center gap-2">
                         <el-icon class="text-blue-500 text-lg"><DataAnalysis /></el-icon>
-                        <span class="font-bold text-gray-700">Resumen de la Jornada - {{ datos_jornada.vendedor }}</span>
+                        <span class="text-lg font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4 w-full">Resumen de la Jornada - {{ datos_jornada.vendedor }}</span>
                     </div>
                 </template>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Detalle Administrativo -->
                     <div class="flex flex-col gap-1 col-span-1 md:col-span-2 lg:col-span-1">
-                        <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Fecha Apertura</span>
-                        <span class="text-sm font-medium text-gray-800">{{ datos_jornada.fecha }}</span>
+                        <span class="text-base font-semibold text-gray-700 mb-1 block">Fecha Apertura</span>
+                        <span class="text-xl font-bold text-gray-900">{{ datos_jornada.fecha }}</span>
                         
-                        <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-3">Estado Caja</span>
+                        <span class="text-base font-semibold text-gray-700 mb-1 block mt-3">Estado Caja</span>
                         <el-tag :type="cierre_aprobado ? 'danger' : (datos_jornada.estado_caja === 'Abierta' ? 'success' : 'warning')" size="small">
                             {{ datos_jornada.estado_caja }}
                         </el-tag>
                     </div>
 
                     <!-- Saldos -->
-                    <div class="bg-gray-50 p-4 rounded-lg border flex flex-col justify-center">
-                        <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider flex items-center gap-1">
-                            <el-icon><Money /></el-icon> Saldo Inicial (Entregado al inicio)
+                    <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-green-500 flex flex-col justify-center">
+                        <span class="text-base font-semibold text-gray-700 mb-1 block flex items-center gap-1">
+                            <el-icon><Money /></el-icon> Fondo de Cambio (Monedas/Billetes)
+                            <el-tooltip content="Monto entregado exclusivamente para dar cambio. No afecta ventas ni servicios." placement="top">
+                                <el-icon class="cursor-help"><Warning /></el-icon>
+                            </el-tooltip>
                         </span>
-                        <span class="text-2xl font-bold text-gray-700 mt-1">Bs {{ Number(datos_jornada.saldo_inicial).toFixed(2) }}</span>
+                        <span class="text-xl font-bold text-gray-900 mt-1">Bs {{ Number(datos_jornada.saldo_inicial).toFixed(2) }}</span>
                         
                         <div class="mt-4 flex justify-between text-sm">
                             <span class="text-gray-600">Total Ventas:</span>
-                            <span class="font-medium text-green-600">+ Bs {{ Number(datos_jornada.total_ventas).toFixed(2) }}</span>
+                            <span class="text-xl font-bold text-green-600">+ Bs {{ Number(datos_jornada.total_ventas).toFixed(2) }}</span>
                         </div>
                         <div class="flex justify-between text-sm mt-1">
                             <span class="text-gray-600">Movs. Manuales:</span>
-                            <span class="font-medium" :class="datos_jornada.total_movimientos < 0 ? 'text-red-600' : 'text-blue-600'">
+                            <span class="text-xl font-bold" :class="datos_jornada.total_movimientos < 0 ? 'text-red-600' : 'text-blue-600'">
                                 {{ datos_jornada.total_movimientos > 0 ? '+' : '' }} Bs {{ Number(datos_jornada.total_movimientos).toFixed(2) }}
                             </span>
                         </div>
                     </div>
 
                     <!-- Saldo Esperado -->
-                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col justify-center lg:col-span-2">
-                        <span class="text-sm text-blue-700 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-500 flex flex-col justify-center lg:col-span-2">
+                        <span class="text-base font-semibold text-gray-700 mb-1 block flex items-center gap-1">
                             <el-icon><Wallet /></el-icon> Efectivo que debe tener en mano ahora
                         </span>
-                        <span class="text-4xl font-extrabold text-blue-900 mt-2">Bs {{ Number(datos_jornada.saldo_actual_esperado).toFixed(2) }}</span>
+                        <span class="text-xl font-bold text-gray-900 mt-2">Bs {{ Number(datos_jornada.saldo_actual_esperado).toFixed(2) }}</span>
                         <p class="text-xs text-blue-600 mt-2 flex items-center gap-1">
                             <el-icon><InfoFilled /></el-icon> 
                             Suma del inicial, más ventas completadas, más/menos movimientos manuales.
@@ -360,25 +379,51 @@ const guardarVentaRapida = (seccionKey) => {
                 </div>
                 
                 <div class="mt-4 border-t pt-4" v-if="datos_jornada.servicios_asignados && datos_jornada.servicios_asignados.length > 0">
-                    <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider mr-2">Servicios Autorizados:</span>
+                    <span class="text-base font-semibold text-gray-700 mb-1 block mr-2">Servicios Autorizados:</span>
                     <el-tag v-for="srv in datos_jornada.servicios_asignados" :key="srv" size="small" class="mr-1 mb-1 bg-gray-100 text-gray-700 border-gray-300">
                         {{ srv }}
                     </el-tag>
                 </div>
             </el-card>
+            </div>
+
+            <!-- Control de Tarjetas Físicas -->
+            <div v-if="tabla_tarjetas && tabla_tarjetas.length > 0" class="mt-2 mb-2 col-span-1 md:col-span-2 lg:col-span-3">
+                <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-400">
+                    <el-card shadow="never" class="!border-0 !p-0">
+                    <template #header>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4 w-full">Control de Tarjetas Físicas</h3>
+                        </div>
+                    </template>
+                    <el-table :data="tabla_tarjetas" border stripe style="width: 100%" size="small" class="text-base [&_th]:font-bold [&_th]:bg-gray-50 [&_td]:py-3 [&_td]:align-middle">
+                        <el-table-column prop="tipo" label="Tipo/Operador" min-width="150" />
+                        <el-table-column prop="asignado" label="Asignado Inicial" width="140" align="center" />
+                        <el-table-column prop="vendido" label="Vendido (Sistema)" width="150" align="center" />
+                        <el-table-column label="Restante Físico" width="140" align="center">
+                            <template #default="scope">
+                                <el-tag :type="scope.row.restante <= 0 ? 'danger' : 'success'" effect="dark">
+                                    {{ scope.row.restante }} und
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    </el-card>
+                </div>
+            </div>
 
             <!-- 10 Secciones de Movimientos -->
-            <div class="mt-4">
-                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Registro de Movimientos (ERS)</h3>
+            <div class="mt-4 col-span-1 md:col-span-2 lg:col-span-3">
+                <h3 class="text-lg font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4">Registro de Movimientos (ERS)</h3>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <el-card 
                         v-for="seccion in seccionesInfo" 
                         :key="seccion.key"
-                        class="shadow-sm hover:shadow-md transition-shadow"
+                        class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-400 hover:shadow-md transition-shadow"
                         :body-style="{ padding: '15px' }"
                     >
-                        <div class="font-bold text-gray-700 text-sm mb-3 border-b pb-2 text-center h-10 flex items-center justify-center relative">
+                        <div class="text-lg font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4 text-center h-10 flex items-center justify-center relative">
                             {{ seccion.titulo }}
                             <el-tooltip v-if="!seccion.usaProductos && !seccion.permiteNegativo" content="Los servicios no generan ticket. El registro queda auditado en movimientos y cierre." placement="top" :hide-after="0">
                                 <el-icon class="ml-1 text-blue-400 cursor-pointer text-xs"><InfoFilled /></el-icon>
@@ -386,8 +431,8 @@ const guardarVentaRapida = (seccionKey) => {
                         </div>
                         
                         <div class="mb-3 text-center">
-                            <span class="text-xs text-gray-500">Subtotal Acumulado:</span><br>
-                            <span class="font-bold text-lg" :class="movimientos_por_seccion[seccion.key] < 0 ? 'text-red-600' : 'text-blue-600'">
+                            <span class="text-base font-semibold text-gray-700 mb-1 block">Subtotal Acumulado:</span>
+                            <span class="text-xl font-bold text-gray-900" :class="movimientos_por_seccion[seccion.key] < 0 ? 'text-red-600' : 'text-blue-600'">
                                 Bs {{ Number(movimientos_por_seccion[seccion.key] || 0).toFixed(2) }}
                             </span>
                         </div>
@@ -479,20 +524,20 @@ const guardarVentaRapida = (seccionKey) => {
                                 </el-select>
 
                                 <!-- Badges de Límite -->
-                                <div v-if="getSaldoActivo(seccion.key)" class="text-[10px] bg-gray-100 p-1.5 rounded mb-2 border border-gray-200">
+                                <div v-if="getSaldoActivo(seccion.key)" class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-orange-500 mb-2">
                                     <div class="flex justify-between text-gray-500 mb-0.5">
-                                        <span>Límite:</span> <span class="font-bold">{{ getSaldoActivo(seccion.key).limite.toFixed(2) }} Bs</span>
+                                        <span class="text-base font-semibold text-gray-700 mb-1 block">Límite:</span> <span class="font-bold">{{ getSaldoActivo(seccion.key).limite.toFixed(2) }} Bs</span>
                                     </div>
                                     <div class="flex justify-between text-gray-500 mb-0.5">
-                                        <span>Usado:</span> <span class="font-bold">{{ getSaldoActivo(seccion.key).usado.toFixed(2) }} Bs</span>
+                                        <span class="text-base font-semibold text-gray-700 mb-1 block">Usado:</span> <span class="font-bold">{{ getSaldoActivo(seccion.key).usado.toFixed(2) }} Bs</span>
                                     </div>
                                     <div class="flex justify-between mt-1 border-t border-gray-200 pt-1" :class="getSaldoActivo(seccion.key).disponible <= 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'">
-                                        <span>Disponible:</span> <span>{{ getSaldoActivo(seccion.key).disponible.toFixed(2) }} Bs</span>
+                                        <span class="text-base font-semibold text-gray-700 mb-1 block">Disponible:</span> <span>{{ getSaldoActivo(seccion.key).disponible.toFixed(2) }} Bs</span>
                                     </div>
                                 </div>
                                 
                                 <el-alert v-if="getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0"
-                                    title="Límite Agotado" type="error" :closable="false" show-icon class="mb-2 py-1 px-2 text-xs" />
+                                    title="Límite Agotado" type="error" :closable="false" show-icon class="mb-2 py-1 px-2 text-xs border-l-4 border-red-500" />
 
                                 <div class="w-full">
                                     <el-input 
@@ -541,3 +586,9 @@ export default {
     components: { Loading }
 }
 </script>
+
+<style scoped>
+:deep(.el-input__inner), :deep(.el-input__wrapper) {
+    @apply !py-2 !text-base !min-h-[40px];
+}
+</style>

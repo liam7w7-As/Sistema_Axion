@@ -349,7 +349,7 @@ class CierreCajaController extends Controller
         // Totales
         $html .= '<h3>TOTALES DE CAJA</h3>';
         $html .= '<table class="report" cellpadding="4">';
-        $html .= '<tr style="background-color:#ffffff;"><td width="60%">SALDO INICIAL</td><td width="40%" class="right">' . number_format($cierre->saldo_inicial, 2) . '</td></tr>';
+        $html .= '<tr style="background-color:#ffffff;"><td width="60%">FONDO DE CAMBIO</td><td width="40%" class="right">' . number_format($cierre->saldo_inicial, 2) . '</td></tr>';
         $html .= '<tr style="background-color:#f9f9f9;"><td width="60%">TOTAL VENTAS</td><td width="40%" class="right">' . number_format($cierre->total_ventas, 2) . '</td></tr>';
         $html .= '<tr style="background-color:#ffffff;"><td width="60%">TOTAL MOVIMIENTOS MANUALES</td><td width="40%" class="right">' . number_format($cierre->total_movimientos, 2) . '</td></tr>';
         $html .= '<tr style="background-color:#e2e8f0; font-weight:bold;"><td width="60%">SALDO ESPERADO EN CAJA</td><td width="40%" class="right">' . number_format($cierre->saldo_esperado, 2) . '</td></tr>';

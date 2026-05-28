@@ -90,7 +90,7 @@ const formatearMoneda = (valor) => {
                 </div>
                 <div class="text-sm mt-3 mb-3" v-if="vendedor.aperturas_caja && vendedor.aperturas_caja.length > 0">
                     <div class="flex justify-between py-1 border-b border-gray-100">
-                        <span class="text-gray-500">Saldo Inicial:</span>
+                        <span class="text-gray-500">Fondo de Cambio:</span>
                         <span class="font-medium text-gray-700">{{ formatearMoneda(vendedor.aperturas_caja[0].saldo_inicial) }}</span>
                     </div>
                     <div class="flex justify-between py-1 border-b border-gray-100">

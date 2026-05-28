@@ -112,7 +112,7 @@ const formatearEtiquetaSeccion = (clave) => {
                                 <p class="font-medium text-gray-800">{{ formatearFecha(apertura.fecha_hora_apertura) }}</p>
                             </div>
                             <div>
-                                <p class="text-xs text-gray-500">Saldo Inicial</p>
+                                <p class="text-xs text-gray-500">Fondo de Cambio</p>
                                 <p class="font-bold text-green-600">{{ formatearMoneda(apertura.saldo_inicial) }}</p>
                             </div>
                         </div>
@@ -157,7 +157,7 @@ const formatearEtiquetaSeccion = (clave) => {
                             <div class="text-center">
                                 <p class="text-sm text-gray-500 uppercase tracking-widest">Saldo Esperado en Caja</p>
                                 <h2 class="text-4xl font-black text-gray-800 my-2">{{ formatearMoneda(saldo_esperado) }}</h2>
-                                <p class="text-xs text-gray-400">Incluye: Saldo Inicial + Movimientos + Ventas</p>
+                                <p class="text-xs text-gray-400">Incluye: Fondo de Cambio + Movimientos + Ventas</p>
                             </div>
                         </template>
 

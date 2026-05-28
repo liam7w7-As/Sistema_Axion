@@ -29,6 +29,7 @@ class StoreAperturaCajaRequest extends FormRequest
             'limite_venta' => ['nullable', 'numeric', 'min:0'],
             'servicios_asignados_json' => ['nullable', 'array'],
             'limites_servicios_json' => ['nullable', 'array'],
+            'lote_tarjetas_json' => ['nullable', 'array'],
             'observacion' => ['nullable', 'string'],
         ];
     }

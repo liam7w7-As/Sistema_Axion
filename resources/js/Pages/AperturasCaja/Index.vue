@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import PanelLayout from '@/Layouts/PanelLayout.vue';
 import { ElMessage } from 'element-plus';
-import { Plus, Search, View } from '@element-plus/icons-vue';
+import { Plus, Search, View, Warning } from '@element-plus/icons-vue';
 import { usePermisos } from '@/Composables/usePermisos';
 import dayjs from 'dayjs';
 
@@ -15,6 +15,7 @@ const props = defineProps({
     vendedoresConCaja: Array,
     vendedoresSinCaja: Array,
     operadores: Array,
+    stock_tarjetas_global: Object,
     filtros: Object
 });
 
@@ -46,6 +47,11 @@ const form = useForm({
     limite_venta: null,
     servicios_asignados_json: [],
     limites_servicios_json: {},
+    lote_tarjetas_json: {
+        tigo_unidad: 0, tigo_mayor: 0,
+        entel_unidad: 0, entel_mayor: 0,
+        viva_unidad: 0, viva_mayor: 0
+    },
     observacion: ''
 });
 
@@ -69,6 +75,7 @@ const abrirDialogo = (vendedor_id = null) => {
     // Pre-seleccionar todos por defecto, suele ser lo común
     form.servicios_asignados_json = serviciosDisponibles.map(s => s.value);
     form.limites_servicios_json = {};
+    form.lote_tarjetas_json = { tigo_unidad: 0, tigo_mayor: 0, entel_unidad: 0, entel_mayor: 0, viva_unidad: 0, viva_mayor: 0 };
     dialogVisible.value = true;
 };
 
@@ -127,8 +134,19 @@ const formatearMoneda = (valor) => {
                         <span class="font-medium">{{ formatearFecha(vendedor.aperturas_caja[0].fecha_hora_apertura) }}</span>
                     </div>
                     <div class="flex justify-between py-1 border-t border-gray-100 mt-1">
-                        <span class="text-gray-500">Saldo Inicial:</span>
+                        <span class="text-gray-500">Fondo de Cambio:</span>
                         <span class="font-bold text-green-600">{{ formatearMoneda(vendedor.aperturas_caja[0].saldo_inicial) }}</span>
+                    </div>
+                    <div v-if="vendedor.aperturas_caja[0].lote_tarjetas_json && Object.values(vendedor.aperturas_caja[0].lote_tarjetas_json).some(v => v > 0)" class="mt-2 text-xs border-t border-gray-100 pt-2 text-gray-600 bg-gray-50 p-1 rounded">
+                        <div class="font-semibold text-[10px] uppercase text-gray-400 mb-1">Tarjetas Asignadas (Físico)</div>
+                        <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+                            <span v-if="vendedor.aperturas_caja[0].lote_tarjetas_json.tigo_unidad > 0">Tigo (U): <span class="font-medium">{{ vendedor.aperturas_caja[0].lote_tarjetas_json.tigo_unidad }}</span></span>
+                            <span v-if="vendedor.aperturas_caja[0].lote_tarjetas_json.tigo_mayor > 0">Tigo (M): <span class="font-medium">{{ vendedor.aperturas_caja[0].lote_tarjetas_json.tigo_mayor }}</span></span>
+                            <span v-if="vendedor.aperturas_caja[0].lote_tarjetas_json.entel_unidad > 0">Entel (U): <span class="font-medium">{{ vendedor.aperturas_caja[0].lote_tarjetas_json.entel_unidad }}</span></span>
+                            <span v-if="vendedor.aperturas_caja[0].lote_tarjetas_json.entel_mayor > 0">Entel (M): <span class="font-medium">{{ vendedor.aperturas_caja[0].lote_tarjetas_json.entel_mayor }}</span></span>
+                            <span v-if="vendedor.aperturas_caja[0].lote_tarjetas_json.viva_unidad > 0">Viva (U): <span class="font-medium">{{ vendedor.aperturas_caja[0].lote_tarjetas_json.viva_unidad }}</span></span>
+                            <span v-if="vendedor.aperturas_caja[0].lote_tarjetas_json.viva_mayor > 0">Viva (M): <span class="font-medium">{{ vendedor.aperturas_caja[0].lote_tarjetas_json.viva_mayor }}</span></span>
+                        </div>
                     </div>
                 </div>
             </el-card>
@@ -144,7 +162,7 @@ const formatearMoneda = (valor) => {
                 </div>
                 <div class="text-sm mt-3 mb-3">
                     <div class="flex justify-between py-1 text-gray-400" v-if="vendedor.aperturas_caja && vendedor.aperturas_caja.length > 0">
-                        <span>Último saldo inicial:</span>
+                        <span>Último fondo de cambio:</span>
                         <span>{{ formatearMoneda(vendedor.aperturas_caja[0].saldo_inicial) }}</span>
                     </div>
                     <div v-else class="text-xs text-gray-400 italic py-1">Nunca ha abierto caja</div>
@@ -201,7 +219,7 @@ const formatearMoneda = (valor) => {
                     <template #default="scope">{{ formatearFecha(scope.row.fecha_hora_apertura) }}</template>
                 </el-table-column>
                 
-                <el-table-column prop="saldo_inicial" label="Saldo Inicial" width="120" align="right">
+                <el-table-column prop="saldo_inicial" label="Fondo de Cambio" width="120" align="right">
                     <template #default="scope">{{ formatearMoneda(scope.row.saldo_inicial) }}</template>
                 </el-table-column>
 
@@ -258,7 +276,13 @@ const formatearMoneda = (valor) => {
                 </el-form-item>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <el-form-item label="Saldo Inicial (Efectivo/Sencillo)" :error="form.errors.saldo_inicial" required>
+                    <el-form-item :error="form.errors.saldo_inicial" required>
+                        <template #label>
+                            Fondo de Cambio (Monedas/Billetes)
+                            <el-tooltip content="Monto entregado exclusivamente para dar cambio. No afecta ventas ni servicios." placement="top">
+                                <el-icon class="ml-1 cursor-help"><Warning /></el-icon>
+                            </el-tooltip>
+                        </template>
                         <el-input v-model="form.saldo_inicial" type="number" step="any" min="0" placeholder="Ej: 150.00" class="w-full">
                             <template #prefix>Bs</template>
                         </el-input>
@@ -317,6 +341,47 @@ const formatearMoneda = (valor) => {
                             <template #prefix>Bs</template>
                         </el-input>
                     </el-form-item>
+                </div>
+
+                <!-- LOTE DE TARJETAS FÍSICAS -->
+                <div v-if="form.servicios_asignados_json.includes('tarjetas')" class="mb-4 bg-gray-50 p-4 rounded border">
+                    <h4 class="font-bold mb-3 text-sm text-gray-700">Asignación de Tarjetas Físicas</h4>
+                    <div class="grid grid-cols-2 gap-4 mb-3 border-b pb-2">
+                        <el-form-item :label="`Tigo (Unidad) - Max: ${stock_tarjetas_global?.tigo_unidad || 0}`" class="mb-0">
+                            <el-input v-model="form.lote_tarjetas_json.tigo_unidad" type="number" min="0" placeholder="0">
+                                <template #append>und</template>
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item :label="`Tigo (Mayor) - Max: ${stock_tarjetas_global?.tigo_mayor || 0}`" class="mb-0">
+                            <el-input v-model="form.lote_tarjetas_json.tigo_mayor" type="number" min="0" placeholder="0">
+                                <template #append>und</template>
+                            </el-input>
+                        </el-form-item>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-3 border-b pb-2">
+                        <el-form-item :label="`Entel (Unidad) - Max: ${stock_tarjetas_global?.entel_unidad || 0}`" class="mb-0">
+                            <el-input v-model="form.lote_tarjetas_json.entel_unidad" type="number" min="0" placeholder="0">
+                                <template #append>und</template>
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item :label="`Entel (Mayor) - Max: ${stock_tarjetas_global?.entel_mayor || 0}`" class="mb-0">
+                            <el-input v-model="form.lote_tarjetas_json.entel_mayor" type="number" min="0" placeholder="0">
+                                <template #append>und</template>
+                            </el-input>
+                        </el-form-item>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <el-form-item :label="`Viva (Unidad) - Max: ${stock_tarjetas_global?.viva_unidad || 0}`" class="mb-0">
+                            <el-input v-model="form.lote_tarjetas_json.viva_unidad" type="number" min="0" placeholder="0">
+                                <template #append>und</template>
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item :label="`Viva (Mayor) - Max: ${stock_tarjetas_global?.viva_mayor || 0}`" class="mb-0">
+                            <el-input v-model="form.lote_tarjetas_json.viva_mayor" type="number" min="0" placeholder="0">
+                                <template #append>und</template>
+                            </el-input>
+                        </el-form-item>
+                    </div>
                 </div>
 
                 <el-form-item label="Observación" :error="form.errors.observacion">

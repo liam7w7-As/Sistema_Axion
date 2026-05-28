@@ -67,12 +67,22 @@ class AperturaCajaController extends Controller
             ->distinct()
             ->pluck('operador');
 
+        $stock_tarjetas_global = [];
+        $tarjetas = \App\Models\ProductService::whereIn('categoria', ['tarjetas_unidad', 'tarjetas_mayor'])
+            ->get(['operador', 'categoria', 'stock_actual']);
+            
+        foreach($tarjetas as $t) {
+            $key = strtolower($t->operador) . '_' . str_replace('tarjetas_', '', $t->categoria);
+            $stock_tarjetas_global[$key] = $t->stock_actual;
+        }
+
         return Inertia::render('AperturasCaja/Index', [
             'aperturas' => $aperturas,
             'vendedores' => $vendedores,
             'vendedoresConCaja' => $vendedoresConCaja,
             'vendedoresSinCaja' => $vendedoresSinCaja,
             'operadores' => $operadores,
+            'stock_tarjetas_global' => $stock_tarjetas_global,
             'filtros' => [
                 'search' => $search,
                 'vendedor_id' => $vendedor_id,
@@ -90,6 +100,31 @@ class AperturaCajaController extends Controller
         
         $validated['fecha_hora_apertura'] = Carbon::now();
         $validated['status'] = 'abierta';
+
+        // Validar stock de tarjetas físicas asignadas
+        if (isset($validated['servicios_asignados_json']) && in_array('tarjetas', $validated['servicios_asignados_json'])) {
+            $lote = $validated['lote_tarjetas_json'] ?? [];
+            $tarjetas = \App\Models\ProductService::whereIn('categoria', ['tarjetas_unidad', 'tarjetas_mayor'])->get();
+            
+            $key_map = [
+                'tigo_unidad' => ['Tigo', 'tarjetas_unidad'],
+                'tigo_mayor' => ['Tigo', 'tarjetas_mayor'],
+                'entel_unidad' => ['Entel', 'tarjetas_unidad'],
+                'entel_mayor' => ['Entel', 'tarjetas_mayor'],
+                'viva_unidad' => ['Viva', 'tarjetas_unidad'],
+                'viva_mayor' => ['Viva', 'tarjetas_mayor'],
+            ];
+
+            foreach ($key_map as $lote_key => $info) {
+                if (!empty($lote[$lote_key]) && $lote[$lote_key] > 0) {
+                    $producto = $tarjetas->where('operador', $info[0])->where('categoria', $info[1])->first();
+                    $stock_actual = $producto ? $producto->stock_actual : 0;
+                    if ($lote[$lote_key] > $stock_actual) {
+                        return redirect()->back()->withErrors(['lote_tarjetas_json' => "Stock insuficiente para tarjetas {$info[0]} ({$info[1]}). Disponible: {$stock_actual} und."]);
+                    }
+                }
+            }
+        }
 
         DB::beginTransaction();
         try {

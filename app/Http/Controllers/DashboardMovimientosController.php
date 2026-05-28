@@ -208,6 +208,44 @@ class DashboardMovimientosController extends Controller
             ];
         }
 
+        // CÁLCULO DE TARJETAS FÍSICAS
+        $lote_tarjetas = $apertura->lote_tarjetas_json ?? [];
+        $tablaTarjetas = [];
+        
+        if (!empty($lote_tarjetas)) {
+            $vendidas = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->join('products_services', 'sale_items.product_service_id', '=', 'products_services.id')
+                ->where('sales.cash_opening_id', $apertura->id)
+                ->where('sales.status', 'completada')
+                ->whereIn('products_services.categoria', ['tarjetas_unidad', 'tarjetas_mayor'])
+                ->select('products_services.categoria', 'products_services.operador', DB::raw('SUM(sale_items.cantidad) as total_vendido'))
+                ->groupBy('products_services.categoria', 'products_services.operador')
+                ->get();
+
+            $tipos = [
+                ['key' => 'tigo_unidad', 'label' => 'Tigo (Unidad)', 'op' => 'Tigo', 'cat' => 'tarjetas_unidad'],
+                ['key' => 'tigo_mayor', 'label' => 'Tigo (Mayor)', 'op' => 'Tigo', 'cat' => 'tarjetas_mayor'],
+                ['key' => 'entel_unidad', 'label' => 'Entel (Unidad)', 'op' => 'Entel', 'cat' => 'tarjetas_unidad'],
+                ['key' => 'entel_mayor', 'label' => 'Entel (Mayor)', 'op' => 'Entel', 'cat' => 'tarjetas_mayor'],
+                ['key' => 'viva_unidad', 'label' => 'Viva (Unidad)', 'op' => 'Viva', 'cat' => 'tarjetas_unidad'],
+                ['key' => 'viva_mayor', 'label' => 'Viva (Mayor)', 'op' => 'Viva', 'cat' => 'tarjetas_mayor'],
+            ];
+
+            foreach ($tipos as $t) {
+                $asignado = $lote_tarjetas[$t['key']] ?? 0;
+                $v = $vendidas->where('categoria', $t['cat'])->where('operador', $t['op'])->first();
+                $vendido = $v ? $v->total_vendido : 0;
+                
+                $tablaTarjetas[] = [
+                    'tipo' => $t['label'],
+                    'asignado' => (int) $asignado,
+                    'vendido' => (int) $vendido,
+                    'restante' => (int) $asignado - (int) $vendido
+                ];
+            }
+        }
+
         return Inertia::render('Dashboard/Index', [
             'apertura_activa' => true,
             'datos_jornada' => [
@@ -229,6 +267,7 @@ class DashboardMovimientosController extends Controller
             'vendedor_seleccionado_id' => $vendedor_id,
             'cierre_aprobado' => $cierre_aprobado,
             'productos_dashboard' => \App\Models\ProductService::where('estado', 'activo')->get(),
+            'tabla_tarjetas' => $tablaTarjetas,
         ]);
     }
 
@@ -354,7 +393,38 @@ class DashboardMovimientosController extends Controller
             // Validar stock si es producto físico
             if ($producto->tipo === 'producto') {
                 if ($producto->stock_actual < $validated['cantidad']) {
-                    throw new \Exception("Stock insuficiente para '{$producto->nombre}'. Disponible: {$producto->stock_actual}");
+                    throw new \Exception("Stock global insuficiente en almacén para '{$producto->nombre}'. Disponible: {$producto->stock_actual}");
+                }
+
+                if (in_array($producto->categoria, ['tarjetas_unidad', 'tarjetas_mayor'])) {
+                    $vendidas = \App\Models\SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                        ->join('products_services', 'sale_items.product_service_id', '=', 'products_services.id')
+                        ->where('sales.cash_opening_id', $apertura->id)
+                        ->where('sales.status', 'completada')
+                        ->where('products_services.categoria', $producto->categoria)
+                        ->where('products_services.operador', $producto->operador)
+                        ->sum('sale_items.cantidad');
+
+                    $key_map = [
+                        'Tigo_tarjetas_unidad' => 'tigo_unidad',
+                        'Tigo_tarjetas_mayor' => 'tigo_mayor',
+                        'Entel_tarjetas_unidad' => 'entel_unidad',
+                        'Entel_tarjetas_mayor' => 'entel_mayor',
+                        'Viva_tarjetas_unidad' => 'viva_unidad',
+                        'Viva_tarjetas_mayor' => 'viva_mayor',
+                    ];
+                    
+                    $map_key = $producto->operador . '_' . $producto->categoria;
+                    $lote_key = $key_map[$map_key] ?? null;
+                    
+                    if ($lote_key) {
+                        $asignado = $apertura->lote_tarjetas_json[$lote_key] ?? 0;
+                        $restante = max(0, $asignado - $vendidas);
+                        
+                        if ($restante < $validated['cantidad']) {
+                            throw new \Exception("Stock asignado insuficiente para '{$producto->nombre}'. Tienes asignadas {$asignado} und, y ya vendiste {$vendidas} und. Restante disponible para vender hoy: {$restante} und.");
+                        }
+                    }
                 }
             }
 

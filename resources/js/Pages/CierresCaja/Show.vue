@@ -142,7 +142,7 @@ const confirmarAprobacion = () => {
                 <el-card class="shadow-sm" body-class="!p-4">
                     <div class="space-y-3">
                         <div class="flex justify-between items-center text-gray-600 border-b pb-2">
-                            <span>Saldo Inicial:</span>
+                            <span>Fondo de Cambio:</span>
                             <span>{{ formatearMoneda(cierre.saldo_inicial) }}</span>
                         </div>
                         <div class="flex justify-between items-center text-gray-600 border-b pb-2">
