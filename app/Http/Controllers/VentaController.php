@@ -292,6 +292,11 @@ class VentaController extends Controller
             p { font-family: helvetica; font-size: 10px; margin: 2px 0; }
         </style>';
 
+        if (!empty($config->logo) && file_exists(storage_path('app/public/' . $config->logo))) {
+            $logoPath = storage_path('app/public/' . $config->logo);
+            $html .= '<div style="text-align:center; margin-bottom: 10px;"><img src="' . $logoPath . '" width="80" /></div>';
+        }
+
         $html .= '<p><strong>CÓDIGO DE VENTA:</strong> ' . $venta->codigo . '</p>';
         $html .= '<p><strong>FECHA:</strong> ' . \Carbon\Carbon::parse($venta->fecha_hora)->format('d/m/Y H:i') . '</p>';
         $html .= '<p><strong>VENDEDOR:</strong> ' . $venta->usuario->nombre_completo . '</p>';
@@ -361,12 +366,18 @@ class VentaController extends Controller
 
         $pdf->AddPage();
 
-        $pdf->SetFont('helvetica', '', 8);
+        $pdf->SetFont('helvetica', '', 7);
 
         $html = '<div style="text-align:center;">';
+        
+        if (!empty($config->logo) && file_exists(storage_path('app/public/' . $config->logo))) {
+            $logoPath = storage_path('app/public/' . $config->logo);
+            $html .= '<img src="' . $logoPath . '" width="35" /><br>';
+        }
+
         $html .= '<strong>' . mb_strtoupper($config->nombre_sistema ?? 'SISTEMA DE VENTAS') . '</strong><br>';
         $html .= 'Actividad: ' . ($config->actividad ?? 'Ventas') . '<br>';
-        $html .= '--------------------------------------<br>';
+        $html .= '------------------------------------------<br>';
         $html .= '<strong>NOTA DE ENTREGA</strong><br>';
         $html .= '</div>';
 
@@ -376,12 +387,12 @@ class VentaController extends Controller
         if ($venta->cliente_nombre) {
             $html .= '<strong>CLIENTE:</strong> ' . $venta->cliente_nombre . '<br>';
         }
-        $html .= '<div style="text-align:center;">--------------------------------------</div>';
+        $html .= '<div style="text-align:center;">------------------------------------------</div>';
 
         $html .= '<table style="width:100%;" cellpadding="1">';
         $html .= '<tr>
-                    <td width="55%"><strong>DESCRIPCIÓN</strong></td>
-                    <td width="15%" align="center"><strong>CANT</strong></td>
+                    <td width="50%"><strong>DESCRIPCIÓN</strong></td>
+                    <td width="20%" align="center"><strong>CANT</strong></td>
                     <td width="30%" align="right"><strong>SUBTOT</strong></td>
                   </tr>';
 
@@ -391,14 +402,14 @@ class VentaController extends Controller
                 $nombre = mb_substr($nombre, 0, 18) . '..';
             }
             $html .= '<tr>';
-            $html .= '<td width="55%">' . $nombre . '</td>';
-            $html .= '<td width="15%" align="center">' . $item->cantidad . '</td>';
+            $html .= '<td width="50%">' . $nombre . '</td>';
+            $html .= '<td width="20%" align="center">' . $item->cantidad . '</td>';
             $html .= '<td width="30%" align="right">' . number_format($item->subtotal, 2) . '</td>';
             $html .= '</tr>';
         }
         $html .= '</table>';
 
-        $html .= '<div style="text-align:center;">--------------------------------------</div>';
+        $html .= '<div style="text-align:center;">------------------------------------------</div>';
         $html .= '<table style="width:100%;">';
         $html .= '<tr><td width="50%"><strong>TOTAL:</strong></td><td width="50%" align="right"><strong>' . number_format($venta->total, 2) . ' Bs</strong></td></tr>';
         $html .= '<tr><td width="50%">PAGO:</td><td width="50%" align="right">' . mb_strtoupper($venta->tipo_pago) . '</td></tr>';
