@@ -363,18 +363,7 @@ class CierreCajaController extends Controller
         $html .= '<tr style="background-color:#f9f9f9;"><td width="60%">FALTANTE</td><td width="40%" class="right" style="color:red; font-weight:bold;">' . number_format($cierre->faltante, 2) . '</td></tr>';
         $html .= '</table>';
         
-        $html .= '<br><br><br><br><br>';
-        $html .= '<table style="width:100%; border:0;" cellpadding="0">';
-        $html .= '<tr>';
-        $html .= '<td style="width:50%; text-align:center;">______________________________<br>Firma Vendedor<br>'.$cierre->aperturaCaja->usuario->nombre_completo.'</td>';
-        
-        if ($cierre->status === 'aprobado' && $cierre->aprobadoPor) {
-            $html .= '<td style="width:50%; text-align:center;">______________________________<br>Aprobado Por<br>'.$cierre->aprobadoPor->nombre_completo.'</td>';
-        } else {
-            $html .= '<td style="width:50%; text-align:center;">______________________________<br>Aprobado Por<br>Administración</td>';
-        }
-        $html .= '</tr>';
-        $html .= '</table>';
+
 
         $pdf->renderHtml($html);
 

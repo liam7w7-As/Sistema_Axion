@@ -395,29 +395,29 @@ const guardarVentaRapida = (seccionKey) => {
             </el-card>
             </div>
 
-            <!-- Control de Tarjetas Físicas -->
+            <!-- Control de Tarjetas Físicas (Colapsable) -->
             <div v-if="tabla_tarjetas && tabla_tarjetas.length > 0" class="mt-2 mb-2 col-span-1 md:col-span-2 lg:col-span-3">
-                <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-400">
-                    <el-card shadow="never" class="!border-0 !p-0">
-                    <template #header>
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-lg font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4 w-full">Control de Tarjetas Físicas</h3>
+                <el-collapse class="bg-white rounded-lg shadow-sm border-l-4 border-gray-400">
+                    <el-collapse-item name="1">
+                        <template #title>
+                            <span class="px-4 text-base font-bold text-gray-800">Control de Tarjetas Físicas Asignadas (Click para desplegar)</span>
+                        </template>
+                        <div class="px-4 pb-4">
+                            <el-table :data="tabla_tarjetas" border stripe style="width: 100%" size="small" class="text-sm">
+                                <el-table-column prop="tipo" label="Tipo/Operador" min-width="150" />
+                                <el-table-column prop="asignado" label="Asignado Inicial" width="140" align="center" />
+                                <el-table-column prop="vendido" label="Vendido (Sistema)" width="150" align="center" />
+                                <el-table-column label="Restante Físico" width="140" align="center">
+                                    <template #default="scope">
+                                        <el-tag :type="scope.row.restante <= 0 ? 'danger' : 'success'" effect="dark" size="small">
+                                            {{ scope.row.restante }} und
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
                         </div>
-                    </template>
-                    <el-table :data="tabla_tarjetas" border stripe style="width: 100%" size="small" class="text-base [&_th]:font-bold [&_th]:bg-gray-50 [&_td]:py-3 [&_td]:align-middle">
-                        <el-table-column prop="tipo" label="Tipo/Operador" min-width="150" />
-                        <el-table-column prop="asignado" label="Asignado Inicial" width="140" align="center" />
-                        <el-table-column prop="vendido" label="Vendido (Sistema)" width="150" align="center" />
-                        <el-table-column label="Restante Físico" width="140" align="center">
-                            <template #default="scope">
-                                <el-tag :type="scope.row.restante <= 0 ? 'danger' : 'success'" effect="dark">
-                                    {{ scope.row.restante }} und
-                                </el-tag>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                    </el-card>
-                </div>
+                    </el-collapse-item>
+                </el-collapse>
             </div>
 
             <!-- 10 Secciones de Movimientos -->
