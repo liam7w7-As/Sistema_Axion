@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, reactive } from 'vue';
 import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import PanelLayout from '@/Layouts/PanelLayout.vue';
 import ProductoFormModal from '@/Components/ProductoFormModal.vue';
@@ -32,10 +32,9 @@ const cambiarVendedor = (val) => {
     router.get(route('dashboard'), { vendedor_id: val }, { preserveState: true });
 };
 
-const formsMovimiento = ref({});
+const formsMovimiento = reactive({});
+const formsVenta = reactive({});
 
-// Formularios independientes para ventas rápidas por sección
-const formsVenta = ref({});
 const seccionesInfo = [
     { key: 'tarjetas_unidad', titulo: 'Tarjetas por Unidad', permiteNegativo: false, usaProductos: true },
     { key: 'tarjetas_mayor', titulo: 'Tarjetas por Mayor', permiteNegativo: false, usaProductos: true },
@@ -51,21 +50,19 @@ const seccionesInfo = [
 
 seccionesInfo.forEach(sec => {
     if (sec.usaProductos) {
-        formsVenta.value[sec.key] = {
+        formsVenta[sec.key] = useForm({
             product_service_id: null,
-            cantidad: null,
-            processing: false
-        };
+            cantidad: null
+        });
     } else {
-        formsMovimiento.value[sec.key] = {
+        formsMovimiento[sec.key] = useForm({
             cash_opening_id: props.datos_jornada?.apertura_id || null,
             seccion: sec.key,
             operador: '',
             cantidad: null,
             monto: null,
-            observacion: '',
-            processing: false
-        };
+            observacion: ''
+        });
     }
 });
 
@@ -85,7 +82,7 @@ const getProductosPorSeccion = (seccionKey) => {
 
 // Obtener precio de un producto seleccionado
 const getPrecioProducto = (seccionKey) => {
-    const productId = formsVenta.value[seccionKey].product_service_id;
+    const productId = formsVenta[seccionKey].product_service_id;
     if (!productId) return 0;
     const producto = props.productos_dashboard.find(p => p.id === productId);
     return producto ? parseFloat(producto.precio_venta) : 0;
@@ -93,7 +90,7 @@ const getPrecioProducto = (seccionKey) => {
 
 // Obtener stock de un producto seleccionado
 const getStockProducto = (seccionKey) => {
-    const productId = formsVenta.value[seccionKey].product_service_id;
+    const productId = formsVenta[seccionKey].product_service_id;
     if (!productId) return null;
     const producto = props.productos_dashboard.find(p => p.id === productId);
     return producto && producto.tipo === 'producto' ? producto.stock_actual : null;
@@ -114,7 +111,7 @@ const getSaldoActivo = (seccionKey) => {
     const secInfo = seccionesInfo.find(s => s.key === seccionKey);
     let key = seccionKey;
     if (secInfo && secInfo.requiereOperador) {
-        const form = formsMovimiento.value[seccionKey];
+        const form = formsMovimiento[seccionKey];
         if (form && form.operador) {
             key = `${seccionKey}_${form.operador}`;
         } else {
@@ -133,14 +130,24 @@ watch(() => page.props.flash, (flash) => {
 }, { deep: true });
 
 const guardarSeccionManual = (seccionKey) => {
-    const data = formsMovimiento.value[seccionKey];
-    if (data.monto === null || data.monto === '') {
-        ElMessage.warning('El monto es obligatorio para registrar un movimiento.');
+    const data = formsMovimiento[seccionKey];
+    
+    // Convertir comas a puntos y limpiar espacios si es un string
+    let montoValor = data.monto;
+    if (typeof montoValor === 'string') {
+        montoValor = montoValor.replace(',', '.').trim();
+    }
+    
+    if (montoValor === null || montoValor === '' || isNaN(montoValor)) {
+        ElMessage.warning('El monto es obligatorio y debe ser un número válido.');
         return;
     }
     
+    // Asignar el valor numérico procesado
+    data.monto = parseFloat(montoValor);
+    
     data.processing = true;
-    router.post(route('dashboard.guardar_movimiento'), data, {
+    data.post(route('dashboard.guardar_movimiento'), {
         preserveScroll: true,
         onSuccess: () => {
             data.cantidad = null;
@@ -159,7 +166,7 @@ const guardarSeccionManual = (seccionKey) => {
 };
 
 const guardarVentaRapida = (seccionKey) => {
-    const datos = formsVenta.value[seccionKey];
+    const datos = formsVenta[seccionKey];
     if (!datos.product_service_id) {
         ElMessage.warning('Debe seleccionar un producto.');
         return;
@@ -176,11 +183,11 @@ const guardarVentaRapida = (seccionKey) => {
     }
 
     datos.processing = true;
-    router.post(route('dashboard.guardar_venta_rapida'), {
+    datos.transform((d) => ({
         cash_opening_id: props.datos_jornada?.apertura_id,
-        product_service_id: datos.product_service_id,
-        cantidad: datos.cantidad
-    }, {
+        product_service_id: d.product_service_id,
+        cantidad: d.cantidad
+    })).post(route('dashboard.guardar_venta_rapida'), {
         preserveScroll: true,
         onSuccess: () => {
             datos.processing = false;
@@ -387,7 +394,7 @@ const guardarVentaRapida = (seccionKey) => {
 
                         <div class="flex flex-col gap-2 relative">
                             <!-- Overlay de carga -->
-                            <div v-if="(seccion.usaProductos ? formsVenta[seccion.key].processing : formMovimiento.processing && formMovimiento.seccion === seccion.key)" class="absolute inset-0 bg-white bg-opacity-70 z-10 flex items-center justify-center">
+                            <div v-if="(seccion.usaProductos ? formsVenta[seccion.key].processing : formsMovimiento[seccion.key].processing)" class="absolute inset-0 bg-white bg-opacity-70 z-10 flex items-center justify-center">
                                 <el-icon class="is-loading text-blue-500 text-2xl"><Loading /></el-icon>
                             </div>
 
@@ -501,9 +508,6 @@ const guardarVentaRapida = (seccionKey) => {
                                     
                                     <el-input 
                                         v-model="formsMovimiento[seccion.key].monto" 
-                                        type="number" 
-                                        :min="seccion.permiteNegativo ? undefined : 0" 
-                                        :step="0.10"
                                         placeholder="Monto" 
                                         size="small"
                                         class="flex-1"
