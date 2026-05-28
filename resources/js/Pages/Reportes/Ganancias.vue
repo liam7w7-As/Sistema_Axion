@@ -203,17 +203,23 @@ const calcularTotales = (param) => {
                     </div>
                 </template>
 
-                <el-table :data="datos?.data || []" border stripe style="width: 100%" v-if="datos && datos.data.length > 0" show-summary :summary-method="calcularTotales">
-                    <el-table-column prop="producto" label="Producto / Servicio" min-width="220" />
-                    <el-table-column prop="operador" label="Operador" width="120" align="center">
+                <template v-if="datos && datos.data.length > 0">
+                    <el-table :data="datos?.data || []" border stripe style="width: 100%" show-summary :summary-method="calcularTotales">
+                        <el-table-column prop="origen" label="Origen" width="130">
+                        <template #default="scope">
+                            {{ String(scope.row.origen).toUpperCase() }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="producto" label="Producto / Servicio" min-width="200" />
+                    <el-table-column prop="operador" label="Operador" width="110" align="center">
                         <template #default="scope">
                             {{ scope.row.operador || '—' }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="P. Compra Bs" width="130" align="right">
-                        <template #default="scope">{{ Number(scope.row.precio_compra).toFixed(2) }}</template>
+                    <el-table-column label="P. Compra Bs" width="110" align="right">
+                        <template #default="scope">{{ Number(scope.row.precio_compra_ref).toFixed(2) }}</template>
                     </el-table-column>
-                    <el-table-column prop="cantidad_total" label="Cant. Vendida" width="120" align="center" />
+                    <el-table-column prop="cantidad_total" label="Cantidad" width="100" align="center" />
                     <el-table-column label="Ingresos Bs" width="140" align="right">
                         <template #default="scope">
                             <span class="font-semibold text-blue-600">{{ Number(scope.row.ingresos_totales).toFixed(2) }}</span>
@@ -226,7 +232,12 @@ const calcularTotales = (param) => {
                             </span>
                         </template>
                     </el-table-column>
-                </el-table>
+                    </el-table>
+
+                    <p class="text-xs text-gray-500 mt-2 italic">
+                        * Las ganancias de servicios se calculan según comisión/margen configurado. Las ventas físicas usan costo histórico al momento de la venta.
+                    </p>
+                </template>
 
                 <el-empty v-else description="No se encontraron registros" />
 

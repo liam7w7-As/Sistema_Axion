@@ -75,11 +75,11 @@ const iniciarSesion = () => {
                 </el-form-item>
 
                 <!-- Recordarme -->
-                <div class="app-login__recordar">
+                <!--div class="app-login__recordar">
                     <el-checkbox v-model="form.remember">
                         Recordar sesión
                     </el-checkbox>
-                </div>
+                </div-->
 
                 <!-- Botón de inicio de sesión -->
                 <el-button

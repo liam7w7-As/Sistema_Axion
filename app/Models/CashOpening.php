@@ -79,6 +79,14 @@ class CashOpening extends Model
         return $this->hasMany(SellerDashboard::class, 'cash_opening_id');
     }
 
+    /**
+     * Movimientos manuales realizados durante esta apertura.
+     */
+    public function sellerMovements()
+    {
+        return $this->hasMany(SellerMovement::class, 'cash_opening_id');
+    }
+
     // ========================
     // SCOPES
     // ========================

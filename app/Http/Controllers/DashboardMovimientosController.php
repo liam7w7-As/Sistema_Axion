@@ -289,6 +289,20 @@ class DashboardMovimientosController extends Controller
 
         DB::beginTransaction();
         try {
+            // Buscar configuración del servicio en products_services para calcular la ganancia
+            $gananciaGenerada = 0;
+            $servicio = \App\Models\ProductService::where('seccion_reporte', $validated['seccion'])
+                ->when(isset($validated['operador']), fn($q) => $q->where('operador', $validated['operador']))
+                ->first();
+
+            if ($servicio) {
+                if ($servicio->tipo_ganancia === 'fija') {
+                    $gananciaGenerada = (float) $servicio->comision;
+                } elseif ($servicio->tipo_ganancia === 'porcentaje') {
+                    $gananciaGenerada = (float) $validated['monto'] * ((float) $servicio->comision / 100);
+                }
+            }
+
             // Guardar historial detallado
             SellerMovement::create([
                 'cash_opening_id' => $apertura->id,
@@ -296,6 +310,7 @@ class DashboardMovimientosController extends Controller
                 'operador' => $validated['operador'] ?? null,
                 'cantidad' => $validated['cantidad'],
                 'monto' => $validated['monto'],
+                'ganancia_generada' => $gananciaGenerada,
                 'observacion' => $validated['observacion'],
             ]);
 

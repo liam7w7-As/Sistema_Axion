@@ -35,6 +35,7 @@ const seccionesOpciones = [
 const filtros = ref({
     vendedor_id: isVendedor ? authUser.id : (searchParams.get('vendedor_id') || ''),
     seccion: searchParams.get('seccion') || '',
+    operador: searchParams.get('operador') || '',
     fecha_rango: initFechaRango
 });
 
@@ -42,6 +43,7 @@ const buscar = debounce(() => {
     let params = {};
     if (filtros.value.vendedor_id) params.vendedor_id = filtros.value.vendedor_id;
     if (filtros.value.seccion) params.seccion = filtros.value.seccion;
+    if (filtros.value.operador) params.operador = filtros.value.operador;
     if (filtros.value.fecha_rango?.[0]) {
         params.fecha_inicio = filtros.value.fecha_rango[0];
         params.fecha_fin = filtros.value.fecha_rango[1];
@@ -56,6 +58,7 @@ const limpiarFiltros = () => {
     filtros.value = {
         vendedor_id: isVendedor ? authUser.id : '',
         seccion: '',
+        operador: '',
         fecha_rango: []
     };
 };
@@ -66,6 +69,7 @@ const exportarPdf = () => {
     const params = new URLSearchParams();
     if (filtros.value.vendedor_id) params.append('vendedor_id', filtros.value.vendedor_id);
     if (filtros.value.seccion) params.append('seccion', filtros.value.seccion);
+    if (filtros.value.operador) params.append('operador', filtros.value.operador);
     if (filtros.value.fecha_rango?.[0]) params.append('fecha_inicio', filtros.value.fecha_rango[0]);
     if (filtros.value.fecha_rango?.[1]) params.append('fecha_fin', filtros.value.fecha_rango[1]);
     params.append('orientacion', orientacionPdf.value);
@@ -93,6 +97,11 @@ const exportarExcel = () => {
     if (filtros.value.seccion) {
         const input = document.createElement('input');
         input.type = 'hidden'; input.name = 'seccion'; input.value = filtros.value.seccion;
+        form.appendChild(input);
+    }
+    if (filtros.value.operador) {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'operador'; input.value = filtros.value.operador;
         form.appendChild(input);
     }
     if (filtros.value.fecha_rango?.[0]) {
@@ -150,6 +159,12 @@ const formatSeccion = (seccionKey) => {
                         <el-option v-for="op in seccionesOpciones" :key="op.value" :label="op.label" :value="op.value" />
                     </el-select>
                 </el-form-item>
+                
+                <el-form-item label="Operador" class="mb-0">
+                    <el-select v-model="filtros.operador" placeholder="Todos" clearable style="width: 150px;">
+                        <el-option v-for="op in filtrosGlobales.operadores" :key="op" :label="op" :value="op" />
+                    </el-select>
+                </el-form-item>
 
                 <el-form-item class="mb-0">
                     <el-button type="info" plain :icon="Refresh" @click="limpiarFiltros">Limpiar</el-button>
@@ -196,18 +211,17 @@ const formatSeccion = (seccionKey) => {
                         {{ scope.row.apertura_caja?.usuario?.nombre_completo || 'N/A' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="Sección" min-width="160">
+                <el-table-column label="Sección" min-width="150">
                     <template #default="scope">
                         {{ formatSeccion(scope.row.seccion) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="Tipo" width="100" align="center">
+                <el-table-column prop="operador" label="Operador" width="120">
                     <template #default="scope">
-                        <el-tag :type="scope.row.tipo === 'ingreso' ? 'success' : 'danger'" size="small">
-                            {{ scope.row.tipo.toUpperCase() }}
-                        </el-tag>
+                        {{ scope.row.operador || 'N/A' }}
                     </template>
                 </el-table-column>
+
                 <el-table-column label="Monto Bs" width="120" align="right">
                     <template #default="scope">
                         <span class="font-bold" :class="scope.row.monto < 0 ? 'text-red-600' : 'text-blue-600'">

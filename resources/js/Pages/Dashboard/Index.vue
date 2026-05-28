@@ -494,23 +494,12 @@ const guardarVentaRapida = (seccionKey) => {
                                 <el-alert v-if="getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0"
                                     title="Límite Agotado" type="error" :closable="false" show-icon class="mb-2 py-1 px-2 text-xs" />
 
-                                <div class="flex gap-2">
-                                    <el-input 
-                                        v-model="formsMovimiento[seccion.key].cantidad" 
-                                        type="number" 
-                                        placeholder="Cant." 
-                                        size="small" 
-                                        class="w-1/3"
-                                        :disabled="cierre_aprobado || (getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0)"
-                                    >
-                                        <template #prefix>#</template>
-                                    </el-input>
-                                    
+                                <div class="w-full">
                                     <el-input 
                                         v-model="formsMovimiento[seccion.key].monto" 
                                         placeholder="Monto" 
                                         size="small"
-                                        class="flex-1"
+                                        class="w-full"
                                         :disabled="cierre_aprobado || (getSaldoActivo(seccion.key) && getSaldoActivo(seccion.key).disponible <= 0)"
                                     >
                                         <template #prefix>Bs</template>

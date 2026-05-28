@@ -21,12 +21,24 @@ const initFechaRango = (searchParams.get('fecha_inicio') && searchParams.get('fe
 
 const filtros = ref({
     vendedor_id: searchParams.get('vendedor_id') || '',
+    seccion: searchParams.get('seccion') || '',
+    operador: searchParams.get('operador') || '',
     fecha_rango: initFechaRango
 });
+const seccionesOpciones = [
+    { value: 'recargas', label: 'Recargas al Paso' },
+    { value: 'megas', label: 'Megas' },
+    { value: 'servicios_digitales', label: 'Servicios Digitales' },
+    { value: 'banca_digital', label: 'Banca Digital' },
+    { value: 'servicio_tecnico', label: 'Servicio Técnico' },
+    { value: 'efectivo_monedas', label: 'Efectivo/Monedas' }
+];
 
 const buscar = debounce(() => {
     let params = {};
     if (filtros.value.vendedor_id) params.vendedor_id = filtros.value.vendedor_id;
+    if (filtros.value.seccion) params.seccion = filtros.value.seccion;
+    if (filtros.value.operador) params.operador = filtros.value.operador;
     if (filtros.value.fecha_rango?.[0]) {
         params.fecha_inicio = filtros.value.fecha_rango[0];
         params.fecha_fin = filtros.value.fecha_rango[1];
@@ -40,6 +52,8 @@ watch(filtros, buscar, { deep: true });
 const limpiarFiltros = () => {
     filtros.value = {
         vendedor_id: '',
+        seccion: '',
+        operador: '',
         fecha_rango: []
     };
 };
@@ -49,6 +63,8 @@ const orientacionPdf = ref('L');
 const exportarPdf = () => {
     const params = new URLSearchParams();
     if (filtros.value.vendedor_id) params.append('vendedor_id', filtros.value.vendedor_id);
+    if (filtros.value.seccion) params.append('seccion', filtros.value.seccion);
+    if (filtros.value.operador) params.append('operador', filtros.value.operador);
     if (filtros.value.fecha_rango?.[0]) params.append('fecha_inicio', filtros.value.fecha_rango[0]);
     if (filtros.value.fecha_rango?.[1]) params.append('fecha_fin', filtros.value.fecha_rango[1]);
     params.append('orientacion', orientacionPdf.value);
@@ -71,6 +87,16 @@ const exportarExcel = () => {
     if (filtros.value.vendedor_id) {
         const input = document.createElement('input');
         input.type = 'hidden'; input.name = 'vendedor_id'; input.value = filtros.value.vendedor_id;
+        form.appendChild(input);
+    }
+    if (filtros.value.seccion) {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'seccion'; input.value = filtros.value.seccion;
+        form.appendChild(input);
+    }
+    if (filtros.value.operador) {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'operador'; input.value = filtros.value.operador;
         form.appendChild(input);
     }
     if (filtros.value.fecha_rango?.[0]) {
@@ -128,6 +154,18 @@ const cambiarPagina = (pagina) => {
                             <el-option v-for="v in filtrosGlobales.vendedores" :key="v.id" :label="v.nombre_completo" :value="v.id" />
                         </el-select>
                     </el-form-item>
+                    
+                    <el-form-item label="Servicio" class="mb-0">
+                        <el-select v-model="filtros.seccion" placeholder="Todos" clearable style="width: 192px;">
+                            <el-option v-for="op in seccionesOpciones" :key="op.value" :label="op.label" :value="op.value" />
+                        </el-select>
+                    </el-form-item>
+
+                    <el-form-item label="Operador" class="mb-0">
+                        <el-select v-model="filtros.operador" placeholder="Todos" clearable style="width: 150px;">
+                            <el-option v-for="op in filtrosGlobales.operadores" :key="op" :label="op" :value="op" />
+                        </el-select>
+                    </el-form-item>
 
                     <el-form-item class="mb-0">
                         <el-button type="info" plain :icon="Refresh" @click="limpiarFiltros">Limpiar</el-button>
@@ -163,48 +201,47 @@ const cambiarPagina = (pagina) => {
                     </div>
                 </template>
 
-                <div class="overflow-x-auto" v-if="datos && datos.data.length > 0">
-                    <el-table :data="datos?.data || []" border stripe style="width: 100%">
-                        <el-table-column prop="created_at" label="Fecha" width="120">
+                <div class="overflow-x-auto" v-if="datos && Object.keys(datos).length > 0">
+                    <el-table :data="Object.values(datos)" border stripe style="width: 100%">
+                        <el-table-column prop="fecha" label="Fecha" width="120" />
+                        <el-table-column prop="vendedor" label="Vendedor" min-width="160" />
+                        <el-table-column prop="servicio" label="Servicio" min-width="130">
                             <template #default="scope">
-                                {{ new Date(scope.row.created_at).toLocaleDateString() }}
+                                {{ String(scope.row.servicio).toUpperCase() }}
                             </template>
                         </el-table-column>
-                        <el-table-column prop="usuario.nombre_completo" label="Vendedor" min-width="160" />
-                        
-                        <!-- 10 Secciones ERS -->
-                        <el-table-column label="Tarj. Unidad" width="100" align="right">
-                            <template #default="scope">{{ Number(scope.row.tarjetas_unidad).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Tarj. Mayor" width="100" align="right">
-                            <template #default="scope">{{ Number(scope.row.tarjetas_mayor).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Recuperac." width="100" align="right">
-                            <template #default="scope">{{ Number(scope.row.recuperaciones).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Chips" width="80" align="right">
-                            <template #default="scope">{{ Number(scope.row.chips).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Recargas" width="100" align="right">
-                            <template #default="scope">{{ Number(scope.row.recargas).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Megas" width="80" align="right">
-                            <template #default="scope">{{ Number(scope.row.megas).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Serv. Dig." width="100" align="right">
-                            <template #default="scope">{{ Number(scope.row.servicios_digitales).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Banca Dig." width="100" align="right">
-                            <template #default="scope">{{ Number(scope.row.banca_digital).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Serv. Téc." width="100" align="right">
-                            <template #default="scope">{{ Number(scope.row.servicio_tecnico).toFixed(2) }}</template>
-                        </el-table-column>
-                        <el-table-column label="Efectivo" width="100" align="right">
+                        <el-table-column prop="operador" label="Operador" min-width="100">
                             <template #default="scope">
-                                <span :class="scope.row.efectivo_monedas < 0 ? 'text-red-500 font-bold' : ''">
-                                    {{ Number(scope.row.efectivo_monedas).toFixed(2) }}
+                                {{ String(scope.row.operador).toUpperCase() }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="Límite" width="100" align="right">
+                            <template #default="scope">{{ Number(scope.row.limite_asignado).toFixed(2) }}</template>
+                        </el-table-column>
+                        <el-table-column label="Operado" width="100" align="right">
+                            <template #default="scope">{{ Number(scope.row.total_operado).toFixed(2) }}</template>
+                        </el-table-column>
+                        <el-table-column label="Disponible" width="100" align="right">
+                            <template #default="scope">
+                                <span :class="scope.row.disponible <= 0 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'">
+                                    {{ Number(scope.row.disponible).toFixed(2) }}
                                 </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="Inicial (Bs)" width="100" align="right">
+                            <template #default="scope">{{ Number(scope.row.saldo_inicial).toFixed(2) }}</template>
+                        </el-table-column>
+                        <el-table-column label="Final Esp." width="100" align="right">
+                            <template #default="scope">{{ Number(scope.row.saldo_esperado).toFixed(2) }}</template>
+                        </el-table-column>
+                        <el-table-column label="Entregado" width="100" align="right">
+                            <template #default="scope">{{ Number(scope.row.entregado).toFixed(2) }}</template>
+                        </el-table-column>
+                        <el-table-column label="Diferencia" width="100" align="right">
+                            <template #default="scope">
+                                <span v-if="scope.row.diferencia > 0" class="text-green-600 font-bold">+{{ Number(scope.row.diferencia).toFixed(2) }} (Sob)</span>
+                                <span v-else-if="scope.row.diferencia < 0" class="text-red-600 font-bold">{{ Number(scope.row.diferencia).toFixed(2) }} (Fal)</span>
+                                <span v-else class="text-gray-500">0.00</span>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -212,16 +249,6 @@ const cambiarPagina = (pagina) => {
 
                 <el-empty v-else description="No se encontraron registros" />
 
-                <div class="mt-4 flex justify-end" v-if="datos && datos.total > datos.per_page">
-                    <el-pagination
-                        background
-                        layout="prev, pager, next, total"
-                        :total="datos.total"
-                        :page-size="datos.per_page"
-                        :current-page="datos.current_page"
-                        @current-change="cambiarPagina"
-                    />
-                </div>
             </el-card>
         </template>
     </PanelLayout>
