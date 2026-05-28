@@ -68,7 +68,6 @@ const registrarMovimiento = () => {
         preserveScroll: true,
         onSuccess: () => {
             dialogVisible.value = false;
-            ElMessage.success('Movimiento registrado correctamente');
         }
     });
 };
@@ -84,8 +83,7 @@ const confirmarEliminacion = (id) => {
         }
     ).then(() => {
         router.delete(route('inventario.destroy', id), {
-            preserveScroll: true,
-            onSuccess: () => ElMessage.success('Registro eliminado')
+            preserveScroll: true
         });
     }).catch(() => {});
 };

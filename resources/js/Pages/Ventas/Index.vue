@@ -149,6 +149,16 @@ const formatearMoneda = (valor) => {
                     </template>
                 </el-table-column>
 
+                <el-table-column label="Detalle" min-width="220" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span class="text-xs text-gray-600">
+                            <template v-for="(item, index) in scope.row.items" :key="index">
+                                <strong>{{ item.cantidad }}x</strong> {{ item.producto_servicio?.nombre || 'Desconocido' }}<template v-if="index < scope.row.items.length - 1">, </template>
+                            </template>
+                        </span>
+                    </template>
+                </el-table-column>
+
                 <el-table-column prop="total" label="Total" width="120" align="right">
                     <template #default="scope">
                         <span class="font-bold text-green-600">{{ formatearMoneda(scope.row.total) }}</span>

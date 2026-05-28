@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { usePage, Link, router } from '@inertiajs/vue3';
-import { ElNotification } from 'element-plus';
+import { ElNotification, ElMessageBox } from 'element-plus';
 
 import { usePermisos } from '@/Composables/usePermisos';
 
@@ -19,28 +19,42 @@ const nombreUsuario = computed(() => {
     return usuario.value.nombre_completo || usuario.value.name || 'Usuario';
 });
 
-// --- Flash messages (auto-dismiss con ElNotification) ---
-const flashExito = computed(() => page.props.flash?.exito || page.props.flash?.success || null);
-const flashError = computed(() => page.props.flash?.error || null);
-const flashEliminado = computed(() => page.props.flash?.eliminado || null);
-
-watch(flashExito, (msg) => {
-    if (msg) {
-        ElNotification({ title: '¡Operación Exitosa!', message: msg, type: 'success', duration: 4000, position: 'top-right' });
+// --- Flash messages (Popups modales con ElMessageBox) ---
+watch(() => page.props.flash, (flash) => {
+    if (flash?.exito || flash?.success) {
+        ElMessageBox.alert(flash.exito || flash.success, '¡Operación Exitosa!', {
+            confirmButtonText: 'OK',
+            type: 'success',
+            center: true,
+            showClose: false,
+            customClass: 'custom-alert-modal'
+        });
+    } else if (flash?.error) {
+        ElMessageBox.alert(flash.error, 'Error', {
+            confirmButtonText: 'OK',
+            type: 'error',
+            center: true,
+            showClose: false,
+            customClass: 'custom-alert-modal'
+        });
+    } else if (flash?.eliminado) {
+        ElMessageBox.alert(flash.eliminado, 'Registro Eliminado', {
+            confirmButtonText: 'OK',
+            type: 'error',
+            center: true,
+            showClose: false,
+            customClass: 'custom-alert-modal'
+        });
+    } else if (flash?.advertencia || flash?.warning || flash?.ajuste) {
+        ElMessageBox.alert(flash.advertencia || flash.warning || flash.ajuste, 'Atención', {
+            confirmButtonText: 'OK',
+            type: 'warning',
+            center: true,
+            showClose: false,
+            customClass: 'custom-alert-modal'
+        });
     }
-});
-
-watch(flashError, (msg) => {
-    if (msg) {
-        ElNotification({ title: 'Error', message: msg, type: 'error', duration: 5000, position: 'top-right' });
-    }
-});
-
-watch(flashEliminado, (msg) => {
-    if (msg) {
-        ElNotification({ title: 'Registro Eliminado', message: msg, type: 'error', duration: 4000, position: 'top-right' });
-    }
-});
+}, { deep: true, immediate: true });
 
 // --- Nombre del sistema ---
 const nombreSistema = computed(() => {
@@ -758,5 +772,39 @@ const manejarComandoUsuario = (comando) => {
     .app-flash {
         margin: 12px 16px 0;
     }
+}
+</style>
+
+<style>
+/* Estilos globales para hacer el popup de alertas mucho más grande */
+.custom-alert-modal {
+    width: 500px !important;
+    max-width: 90vw !important;
+    padding: 24px !important;
+    border-radius: 12px !important;
+}
+
+.custom-alert-modal .el-message-box__title {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+}
+
+.custom-alert-modal .el-message-box__message {
+    font-size: 18px !important;
+    line-height: 1.6 !important;
+    margin-top: 15px !important;
+    color: #374151 !important;
+}
+
+.custom-alert-modal .el-message-box__status {
+    font-size: 36px !important;
+}
+
+.custom-alert-modal .el-message-box__btns .el-button {
+    font-size: 16px !important;
+    padding: 12px 30px !important;
+    height: auto !important;
+    font-weight: 600 !important;
+    margin-top: 10px !important;
 }
 </style>
