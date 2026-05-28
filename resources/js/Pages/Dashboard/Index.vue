@@ -25,6 +25,10 @@ const props = defineProps({
     tabla_tarjetas: {
         type: Array,
         default: () => []
+    },
+    secciones_habilitadas: {
+        type: Array,
+        default: () => []
     }
 });
 
@@ -39,20 +43,24 @@ const cambiarVendedor = (val) => {
 const formsMovimiento = reactive({});
 const formsVenta = reactive({});
 
-const seccionesInfo = [
-    { key: 'tarjetas_unidad', titulo: 'Tarjetas por Unidad', permiteNegativo: false, usaProductos: true },
-    { key: 'tarjetas_mayor', titulo: 'Tarjetas por Mayor', permiteNegativo: false, usaProductos: true },
-    { key: 'recuperaciones', titulo: 'Recuperaciones', permiteNegativo: false, usaProductos: true },
-    { key: 'chips', titulo: 'Chips', permiteNegativo: false, usaProductos: true },
-    { key: 'recargas', titulo: 'Recargas al Paso', permiteNegativo: false, usaProductos: false, requiereOperador: true },
-    { key: 'megas', titulo: 'Megas', permiteNegativo: false, usaProductos: false, requiereOperador: true },
-    { key: 'servicios_digitales', titulo: 'Servicios Digitales', permiteNegativo: false, usaProductos: false },
-    { key: 'banca_digital', titulo: 'Banca Digital', permiteNegativo: false, usaProductos: false },
-    { key: 'servicio_tecnico', titulo: 'Servicio Técnico', permiteNegativo: false, usaProductos: false },
-    { key: 'efectivo_monedas', titulo: 'Efectivo/Monedas', permiteNegativo: true, usaProductos: false, extra: 'Para salidas ingresar monto con signo negativo (-)' }
+const seccionesInfoOriginal = [
+    { key: 'tarjetas_unidad', titulo: 'Tarjetas por Unidad', permiteNegativo: false, usaProductos: true, color: 'border-blue-500' },
+    { key: 'tarjetas_mayor', titulo: 'Tarjetas por Mayor', permiteNegativo: false, usaProductos: true, color: 'border-blue-400' },
+    { key: 'recuperaciones', titulo: 'Recuperaciones', permiteNegativo: false, usaProductos: true, color: 'border-purple-500' },
+    { key: 'chips', titulo: 'Chips', permiteNegativo: false, usaProductos: true, color: 'border-indigo-500' },
+    { key: 'recargas', titulo: 'Recargas al Paso', permiteNegativo: false, usaProductos: false, requiereOperador: true, color: 'border-green-500' },
+    { key: 'megas', titulo: 'Megas', permiteNegativo: false, usaProductos: false, requiereOperador: true, color: 'border-teal-500' },
+    { key: 'servicios_digitales', titulo: 'Servicios Digitales', permiteNegativo: false, usaProductos: false, color: 'border-cyan-500' },
+    { key: 'banca_digital', titulo: 'Banca Digital', permiteNegativo: false, usaProductos: false, color: 'border-orange-500' },
+    { key: 'servicio_tecnico', titulo: 'Servicio Técnico', permiteNegativo: false, usaProductos: false, color: 'border-yellow-500' },
+    { key: 'efectivo_monedas', titulo: 'Efectivo/Monedas', permiteNegativo: true, usaProductos: false, extra: 'Para salidas ingresar monto con signo negativo (-)', color: 'border-gray-400' }
 ];
 
-seccionesInfo.forEach(sec => {
+const seccionesInfo = computed(() => {
+    return seccionesInfoOriginal.filter(sec => props.secciones_habilitadas.includes(sec.key));
+});
+
+seccionesInfoOriginal.forEach(sec => {
     if (sec.usaProductos) {
         formsVenta[sec.key] = useForm({
             product_service_id: null,
@@ -123,7 +131,7 @@ const operadoresDisponibles = computed(() => {
 const getSaldoActivo = (seccionKey) => {
     if (!props.saldos_servicios) return null;
     
-    const secInfo = seccionesInfo.find(s => s.key === seccionKey);
+    const secInfo = seccionesInfoOriginal.find(s => s.key === seccionKey);
     let key = seccionKey;
     if (secInfo && secInfo.requiereOperador) {
         const form = formsMovimiento[seccionKey];
@@ -416,11 +424,21 @@ const guardarVentaRapida = (seccionKey) => {
             <div class="mt-4 col-span-1 md:col-span-2 lg:col-span-3">
                 <h3 class="text-lg font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4">Registro de Movimientos (ERS)</h3>
                 
+                <el-alert 
+                    v-if="seccionesInfo.length <= 1"
+                    title="No tienes servicios asignados para esta jornada. Contacta al administrador." 
+                    type="warning" 
+                    show-icon 
+                    :closable="false"
+                    class="mb-4"
+                />
+
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <el-card 
                         v-for="seccion in seccionesInfo" 
                         :key="seccion.key"
-                        class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-400 hover:shadow-md transition-shadow"
+                        class="bg-white rounded-lg shadow-sm p-5 border-l-4 hover:shadow-md transition-shadow"
+                        :class="seccion.color"
                         :body-style="{ padding: '15px' }"
                     >
                         <div class="text-lg font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4 text-center h-10 flex items-center justify-center relative">

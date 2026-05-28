@@ -25,6 +25,7 @@ class CashOpening extends Model
         'limite_venta',
         'servicios_asignados_json',
         'limites_servicios_json',
+        'lote_tarjetas_json',
         'observacion',
         'status',
     ];
@@ -40,6 +41,7 @@ class CashOpening extends Model
             'limite_venta' => 'decimal:2',
             'servicios_asignados_json' => 'array',
             'limites_servicios_json' => 'array',
+            'lote_tarjetas_json' => 'array',
         ];
     }
 

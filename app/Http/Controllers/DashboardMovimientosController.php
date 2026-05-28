@@ -246,6 +246,10 @@ class DashboardMovimientosController extends Controller
             }
         }
 
+        // CÁLCULO DE SECCIONES HABILITADAS (Dinámico según asignación)
+        $secciones_habilitadas = $this->getSeccionesHabilitadas($apertura, $vendedor);
+        $asignados_raw = $apertura->servicios_asignados_json ?: ($vendedor->servicios_asignados_json ?? []);
+
         return Inertia::render('Dashboard/Index', [
             'apertura_activa' => true,
             'datos_jornada' => [
@@ -258,8 +262,9 @@ class DashboardMovimientosController extends Controller
                 'total_movimientos' => $total_movimientos,
                 'saldo_actual_esperado' => $saldo_actual_esperado,
                 'estado_caja' => $estado_caja,
-                'servicios_asignados' => $vendedor->servicios_asignados_json ?? [],
+                'servicios_asignados' => $asignados_raw,
             ],
+            'secciones_habilitadas' => $secciones_habilitadas,
             'movimientos_por_seccion' => $totales_consolidados,
             'saldos_servicios' => $saldos_servicios,
             'vendedores_activos' => $vendedores_activos,
@@ -297,6 +302,11 @@ class DashboardMovimientosController extends Controller
 
         if ($apertura->cierreCaja && $apertura->cierreCaja->status === 'aprobado') {
             return redirect()->back()->with('error', 'No se permiten modificaciones después del cierre de caja.');
+        }
+
+        $secciones_habilitadas = $this->getSeccionesHabilitadas($apertura, $apertura->usuario);
+        if (!in_array($validated['seccion'], $secciones_habilitadas)) {
+            return redirect()->back()->withErrors(['seccion' => 'Esta sección no está habilitada para tu jornada.']);
         }
 
         if (in_array($validated['seccion'], ['recargas', 'megas']) && empty($validated['operador'])) {
@@ -364,6 +374,7 @@ class DashboardMovimientosController extends Controller
         }
     }
 
+
     /**
      * Guarda una Venta Rápida desde el Dashboard.
      */
@@ -389,6 +400,11 @@ class DashboardMovimientosController extends Controller
         DB::beginTransaction();
         try {
             $producto = \App\Models\ProductService::findOrFail($validated['product_service_id']);
+
+            $secciones_habilitadas = $this->getSeccionesHabilitadas($apertura, $apertura->usuario);
+            if (!in_array($producto->seccion_reporte, $secciones_habilitadas)) {
+                throw new \Exception("Esta sección ({$producto->seccion_reporte}) no está habilitada para tu jornada.");
+            }
             
             // Validar stock si es producto físico
             if ($producto->tipo === 'producto') {
@@ -482,7 +498,26 @@ class DashboardMovimientosController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error al procesar la venta: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al procesar la venta rápida: ' . $e->getMessage());
         }
+    }
+
+    private function getSeccionesHabilitadas($apertura, $usuario)
+    {
+        $asignados_raw = $apertura->servicios_asignados_json;
+        if (empty($asignados_raw)) {
+            $asignados_raw = $usuario->servicios_asignados_json ?? [];
+        }
+        
+        $secciones_habilitadas = ['efectivo_monedas']; // Siempre requerido
+        foreach ($asignados_raw as $srv) {
+            if ($srv === 'tarjetas') {
+                $secciones_habilitadas[] = 'tarjetas_unidad';
+                $secciones_habilitadas[] = 'tarjetas_mayor';
+            } else {
+                $secciones_habilitadas[] = $srv;
+            }
+        }
+        return array_unique($secciones_habilitadas);
     }
 }
